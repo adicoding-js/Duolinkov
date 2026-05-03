@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Oswald:wght@500;700&family=VT323&display=swap');
+
+:root {
+    --red: #cc0000;
+    --red-dark: #8b0000;
+    --red-bright: #ff2222;
+    --black: #111111;
+    --cream: #f5f0e8;
+    --paper: #ede8d8;
+    --gold: #ffd700;
+    --green-crt: #00ff41;
+    --terminal-bg: #0a0a0a;
+    --terminal-green: #00cc33;
+    --shadow: 4px 4px 0px #000000;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+        padding: 0;
+}
+
+body {
+  font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+      color: var(--cream);
+  min-height: 100vh;
+    background-color: #1a0000;
+        background-image:
+    repeating-linear-gradient(
+        0deg,
+        transparent,
+            transparent 2px,
+        rgba(0,0,0,0.15) 2px,
+            rgba(0,0,0,0.15) 4px
+    ),
+    repeating-linear-gradient(
+            90deg,
+        transparent,
+        transparent 40px,
+            rgba(139,0,0,0.08) 40px,
+        rgba(139,0,0,0.08) 41px
+    ),
+    linear-gradient(
+        180deg,
+            #1a0000 0%,
+        #2a0000 40%,
+            #1a0000 100%
+    );
+    background-attachment: fixed;
+}
