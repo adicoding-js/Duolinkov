@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width", initial-scale="1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ДУОЛИНКОВ</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -29,15 +29,92 @@
 </header>
 
 <main id="app">
-    <section class="screen active" id="home-screen"></section>
-    <section class="screen" id="lesson-screen"></section>
-    <section class="screen" id="complete-screen"></section>
-    <section class="screen" id="gameover-screen"></section>
-</main>
+     <section class="screen active" id="home-screen">
+ 
+        <div class="banner">
+          <div id="home-owl"></div>
+            <div class="banner-text">
+              <h2>GREETINGS, COMRADE</h2>
+                <p id="owl-greeting">The state is watching your progress.</p>
+            </div>
+        </div>
+ 
+          <div class="tabs">
+            <button class="tab active" data-tab="lessons-tab">📚 LESSONS</button>
+              <button class="tab" data-tab="leaderboard-tab">🏆 LEADERBOARD</button>
+            <button class="tab" data-tab="shop-tab">🛒 SHOP</button>
+          </div>
+ 
+        <div class="tab-panel active" id="lessons-tab">
+            <div id="skill-tree"></div>
+        </div>
+ 
+          <div class="tab-panel" id="leaderboard-tab">
+            <ol id="leaderboard"></ol>
+          </div>
+ 
+        <div class="tab-panel" id="shop-tab">
+            <div id="shop-grid"></div>
+        </div>
+ 
+      </section>
+ 
+        <section class="screen" id="lesson-screen">
+          <div class="lesson-header">
+              <button id="quit-btn">✕</button>
+            <div class="progress-bar">
+                <div id="progress-fill"></div>
+            </div>
+              <div class="hearts-mini">
+                <span id="hearts-mini">❤️❤️❤️❤️❤️</span>
+              </div>
+          </div>
 
-<footer class="footer"></footer>
+          <div id="lesson-body"></div>
+            <div class="lesson-footer">
+              <button id="check-btn" disabled>CHECK</button>
+            </div>
+ 
+          <div class="feedback">
+              <div id="feedback-title">correct!</div>
+            <div id="feedback-text"></div>
+              <button id="continue-btn">CONTINUE</button>
+          </div>
+        </section>
+
+      <section class="screen" id="complete-screen">
+     <div class="medal">★</div>
+ 
+        <h2>LESSON COMPLETE, COMRADE</h2>
+            <p class="praise" id="praise-text"></p>
+          <div class="rewards">
+              <div class="reward">
+                <span id="xp-gained">0</span>
+                  <p>XP EARNED</p>
+              </div>
+              <div class="reward">
+                  <span id="accuracy">0%</span>
+                    <p>ACCURACY</p>
+                </div>
+              <div class="reward">
+                  <span id="time-taken">0s</span>
+                <p>TIME</p>
+              </div>
+          </div>
+        <button id="back-home-btn">RETURN TO MOTHERLAND</button>
+      </section>
+ <section class="screen" id="gameover-screen">
+            <div class="gulag">
+                <h2>YOU HAVE BEEN SENT TO THE GULAG</h2>
+              <p class="dramatic">Your lack of effort has been noted by the state.</p>
+                  <p id="gameover-msg"></p>
+              <button id="retry-btn">BEG FOR FORGIVENESS</button>
+            </div>
+          </section>
+  </main>
+ 
 <footer class="footer">
- <p></p>© 1917-2026-27 ● ДУОЛИНГКОВ STATE LANGUAGE BUREAU ● ALL INFORMATION WILL BE RECORDED FOR (you don't need to know) PURPOSES.
+ <p>© 1917-2026-27 ● ДУОЛИНГКОВ STATE LANGUAGE BUREAU ● ALL INFORMATION WILL BE RECORDED FOR (you don't need to know) PURPOSES.</p>
 </footer>
 
 <script src="data.js"></script>
