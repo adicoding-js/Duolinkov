@@ -314,4 +314,59 @@ body {
     padding-bottom: 10px;
     padding-left: 10px;
     padding-right: 10px;
-    user-select
+    user-select: none;
+}
+
+.skill-node.unlocked {
+  background-color: var(--gold);
+  color: var(--black);
+  border-color: var(--black);
+}
+
+.skill-node.locked {
+  background-color: #444444;
+  color: #888888;
+  border-color: #333333;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.skill-node:nth-child(odd) {
+    transform: translateX(-60px);
+}
+
+.skill-node:nth-child(even) {
+    transform: translateX(60px);
+}
+
+.skill-node.unlocked:hover {
+    transform: translateX(-60px) translateY(-3px);
+}
+
+.skill-node.unlocked:nth-child(even):hover {
+    transform: translateX(60px) translateY(-3px);
+}
+
+.skill-node.completed:hover {
+    transform: translateX(-60px) translateY(-3px);
+}
+
+.skill-node.completed:nth-child(even):hover {
+    transform: translateX(60px) translateY(-3px);
+}
+.skill-node .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--gold);
+    color: var(--black);
+    font-family: 'Russo One', sans-serif;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--black);
+    box-shadow: 1px 1px 0px #000000;
+}
