@@ -104,7 +104,6 @@ function renderTree() {
         isUnlocked = true;
       }
     }
-    
     if(isCompleted == true) {
       node.classList.add("completed");
       node.classList.add("unlocked");
@@ -123,21 +122,95 @@ function renderTree() {
       } else {
         startLesson(e.currentTarget.getAttribute("data-id"));
       }
-    };
-    
+    };  
     treeEl.appendChild(node);
     i++;
   }
 }
-
 function startLesson(id) {
-  alert("starting lesson " + id + " (still under dev!)");
+    var lesson = LESSONS.find(function (l) { return l.id == id; });
+    if (!lesson) return;
+    if (STATE.hearts <= 0) {
+        alert("GO TO GULAG (No hearts left).");
+        return;
+    }
+    STATE.currentLesson = lesson;
+    STATE.currentQ = 0;
+    STATE.correctCount = 0;
+    STATE.startTime = new Date().getTime();
+    showScreen('lesson-screen');
+    renderQuestion();
+}
+
+function renderQuestion() {
+    var lesson = STATE.currentLesson;
+    var qData = lesson.questionTemplates[STATE.currentQ];
+    var body = document.getElementById("lesson-body");
+    var checkBtn = document.getElementById("check-btn");
+    body.innerHTML = "";
+    checkBtn.disabled = true;
+    STATE.selectedOption = null;
+    var progress = (STATE.currentQ / lesson.questionTemplates.length) * 100;
+    document.getElementById("progress-fill").style.width = progress + "%";
+    if (qData.type === "translate") {
+        renderTranslate(qData, body, checkBtn);
+    } else {
+        body.innerHTML = "<h2>TODO: " + qData.type + " type</h2>";
+    }
+}
+
+function renderTranslate(q, body, checkBtn) {
+    var word = STATE.currentLesson.wordBank[q.wordIndex];
+    var prompt = q.direction === "en_to_ru" ? "Translate to Russian" : "Translate to English";
+    var text = q.direction === "en_to_ru" ? word.english : word.russian;
+    var correct = q.direction === "en_to_ru" ? word.russian : word.english;
+    body.innerHTML = '<h2 class="question-prompt">' + prompt + '</h2><div class="question-text">' + text + '</div><div class="options" id="options-grid"></div>';
+    var options = [correct, "bread", "comrade", "water"];
+    options.sort(function () { return 0.5 - Math.random(); });
+
+    var grid = document.getElementById("options-grid");
+    options.forEach(function (opt) {
+        var btn = document.createElement("button");
+        btn.className = "option";
+        btn.innerText = opt;
+        btn.onclick = function () {
+            document.querySelectorAll(".option").forEach(function (b) { b.classList.remove("selected"); });
+            btn.classList.add("selected");
+            STATE.selectedOption = opt;
+            checkBtn.disabled = false;
+        };
+        grid.appendChild(btn);
+    });
+
+    checkBtn.onclick = function () {
+        if (STATE.selectedOption === correct) {
+            STATE.currentQ++;
+            if (STATE.currentQ >= STATE.currentLesson.questionTemplates.length) {
+                showScreen('complete-screen');
+            } else {
+                renderQuestion();
+            }
+        } else {
+            STATE.hearts--;
+            updateStats();
+            if (STATE.hearts <= 0) showScreen('gameover-screen');
+            else renderQuestion();
+        }
+    };
 }
 
 function initHome() {
-  renderTree();
+    var greetingEl = document.getElementById("owl-greeting");
+    if (typeof OWL_GREETINGS !== "undefined" && OWL_GREETINGS.length > 0) {
+        var randomMsg = OWL_GREETINGS[Math.floor(Math.random() * OWL_GREETINGS.length)];
+        greetingEl.innerText = randomMsg;
+    } else {
+        greetingEl.innerText = "The state is watching.";
+    }
+
+    renderTree();
 }
 loadState();
 updateStats();
-showScreen('home-screen')
+showScreen('home-screen');
 initHome();
