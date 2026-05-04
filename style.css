@@ -557,3 +557,45 @@ body {
     background-color: var(--gold);
     color: var(--black);
 }
+.match-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 16px;
+}
+
+.match-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.match-item {
+    background-color: var(--cream);
+    border: 3px solid var(--black);
+    padding: 14px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--black);
+    box-shadow: 3px 3px 0px #000;
+    text-align: center;
+}
+
+.match-item.selected {
+    background-color: var(--red);
+    color: var(--gold);
+}
+
+.match-item.matched {
+    background-color: #1a6b1a;
+    color: #fff;
+    border-color: #000;
+    cursor: default;
+}
+
+.match-item.wrong {
+    background-color: var(--red-bright);
+    color: #fff;
+}
