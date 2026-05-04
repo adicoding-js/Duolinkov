@@ -83,6 +83,61 @@ function showScreen(id) {
     }
     document.getElementById(id).classList.add('active');
 }
+function renderTree() {
+  var treeEl = document.getElementById("skill-tree");
+  treeEl.innerHTML = "";  
+  var i = 0;
+  while(i < LESSONS.length) {
+    var lesson = LESSONS[i];
+    var node = document.createElement("div");
+    node.className = "skill-node";  
+    var isCompleted = false;
+    if(STATE.completedLessons.includes(lesson.id)) {
+      isCompleted = true;
+    }  
+    var isUnlocked = false;
+    if(i == 0 || isCompleted) {
+      isUnlocked = true;
+    } else {
+      var prevLessonId = LESSONS[i - 1].id;
+      if(STATE.completedLessons.includes(prevLessonId)) {
+        isUnlocked = true;
+      }
+    }
+    
+    if(isCompleted == true) {
+      node.classList.add("completed");
+      node.classList.add("unlocked");
+      node.innerHTML = lesson.icon + "<br>" + lesson.title + "<div class='badge'>★</div>";
+    } else if(isUnlocked == true) {
+      node.classList.add("unlocked");
+      node.innerHTML = lesson.icon + "<br>" + lesson.title;
+    } else {
+      node.classList.add("locked");
+      node.innerHTML = lesson.icon + "<br>???";
+    } 
+    node.setAttribute("data-id", lesson.id);
+    node.onclick = function(e) {
+      if(e.currentTarget.classList.contains("locked")) {
+        alert("ACCESS DENIED BY THE STATE. finish the ones before it.");
+      } else {
+        startLesson(e.currentTarget.getAttribute("data-id"));
+      }
+    };
+    
+    treeEl.appendChild(node);
+    i++;
+  }
+}
+
+function startLesson(id) {
+  alert("starting lesson " + id + " (still under dev!)");
+}
+
+function initHome() {
+  renderTree();
+}
 loadState();
 updateStats();
-showScreen('home-screen');
+showScreen('home-screen')
+initHome();
