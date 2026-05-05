@@ -162,6 +162,62 @@ function renderType(q, body, checkBtn) {
         }
     };
     setTimeout(function() { input.focus(); }, 100);
+
+var keyboard = document.createElement("div");
+    keyboard.id = "virtual-keyboard";
+    keyboard.style.cssText = "margin-top:20px;display:flex;flex-direction:column;gap:6px;";
+    var rows = [
+        ["й","ц","у","к","е","н","г","ш","щ","з","х","ъ"],
+        ["ф","ы","в","а","п","р","о","л","д","ж","э"],
+        ["я","ч","с","м","и","т","ь","б","ю","⌫"]
+    ];
+    var qwertyMap = { "q":"й","w":"ц","e":"у","r":"к","t":"е","y":"н","u":"г","i":"ш","o":"щ","p":"з","[":"х","]":"ъ",
+        "a":"ф","s":"ы","d":"в","f":"а","g":"п","h":"р","j":"о","k":"л","l":"д",";":"ж","'":"э",
+        "z":"я","x":"ч","c":"с","v":"м","b":"и","n":"т","m":"ь",",":"б",".":"ю"
+    }
+
+    var ii = 0;
+    while(ii < rows.length) {
+        var rowDiv = document.createElement("div");
+        rowDiv.style.cssText = "display:flex;flex-direction:row;gap:5px;justify-content:center;flex-wrap:wrap;";
+        var jj = 0;
+        while(jj < rows[ii].length) {
+            var key = document.createElement("button");
+            var letter = rows[ii][jj];
+            key.innerText = letter;
+            key.style.cssText = "min-width:38px;height:44px;padding:0 6px;font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;background-color:#ede8d8;border:2px solid #111;cursor:pointer;color:#111;box-shadow:2px 2px 0px #000;";
+            key.setAttribute("data-letter", letter);
+            key.onclick = function(e) {
+                e.preventDefault();
+                var inp = document.getElementById("type-input");
+                if(!inp) return;
+                var l = e.currentTarget.getAttribute("data-letter");
+                if(l === "⌫") {
+                    inp.value = inp.value.slice(0, -1);
+                } else {
+                    inp.value = inp.value + l;
+                }
+                inp.oninput();
+            };
+            rowDiv.appendChild(key);
+            jj++;
+        }
+        keyboard.appendChild(rowDiv);
+        ii++;
+    }
+
+    body.appendChild(keyboard);
+    document.onkeydown = function(e) {
+        if(e.key === "Backspace") return;
+        var inp = document.getElementById("type-input");
+        if(!inp || document.activeElement === inp) return;
+        var mapped = qwertyMap[e.key.toLowerCase()];
+        if(mapped) {
+            inp.value = inp.value + mapped;
+            inp.oninput();
+        }
+    };
+
     document.getElementById("continue-btn").style.display = "none";
     checkBtn.onclick = function() {
         input.disabled = true;
@@ -181,7 +237,7 @@ function renderType(q, body, checkBtn) {
             input.style.borderColor = "#ff2222";
             input.style.backgroundColor = "#ff2222";
             input.style.color = "#fff";
-            document.getElementById("feedback-title").innrText = "WRONG.";
+            document.getElementById("feedback-title").innerText = "WRONG.";
             document.getElementById("feedback-text").innerText = "correct answer: " + correct;
         }
         document.getElementById("continue-btn").style.display = "inline-block";
@@ -209,6 +265,7 @@ function renderQuestion() {
     STATE.selectedOption = null;
     var progress = (STATE.currentQ / lesson.questionTemplates.length) * 100;
     document.getElementById("progress-fill").style.width = progress + "%";
+    document.onkeydown = null;
     if(qData.type === "translate") {
         renderTranslate(qData, body, checkBtn);
     } else if(qData.type === "match") {
