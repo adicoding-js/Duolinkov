@@ -599,3 +599,20 @@ body {
     background-color: var(--red-bright);
     color: #fff;
 }
+.type-input {
+    width: 100%;
+    padding: 14px;
+    font-size: 22px;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    border: 3px solid var(--black);
+    background-color: var(--cream);
+    color: var(--black);
+    margin-top: 16px;
+    box-shadow: 3px 3px 0px #000;
+    outline: none;
+}
+
+.type-input:focus {
+    border-color: var(--red);
+}

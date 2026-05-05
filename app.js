@@ -141,7 +141,64 @@ function startLesson(id) {
     showScreen('lesson-screen');
     renderQuestion();
 }
-
+function renderType(q, body, checkBtn) {
+    var word = STATE.currentLesson.wordBank[q.wordIndex];
+    var prompt = q.direction === "en_to_ru" ? "Translate to Russian" : "Translate to English";
+    var text = q.direction === "en_to_ru" ? word.english : word.russian;
+    var correct = q.direction === "en_to_ru" ? word.russian : word.english;
+    body.innerHTML = '<h2 class="question-prompt">' + prompt + '</h2><div class="question-text">' + text + '</div><input type="text" id="type-input" class="type-input" placeholder="Type your answer..." autocomplete="off"/><p style="font-size:12px;color:#888;margin-top:8px;">hint: ' + correct.length + ' characters</p>';
+    var input = document.getElementById("type-input");
+    input.oninput = function() {
+        STATE.selectedOption = input.value.trim();
+        if(input.value.trim().length > 0) {
+            checkBtn.disabled = false;
+        } else {
+            checkBtn.disabled = true;
+        }
+    };
+    input.onkeydown = function(e) {
+        if(e.key === "Enter" && !checkBtn.disabled) {
+            checkBtn.click();
+        }
+    };
+    setTimeout(function() { input.focus(); }, 100);
+    document.getElementById("continue-btn").style.display = "none";
+    checkBtn.onclick = function() {
+        input.disabled = true;
+        checkBtn.disabled = true;
+        var userAnswer = STATE.selectedOption.toLowerCase().trim();
+        var correctAnswer = correct.toLowerCase().trim();
+        if(userAnswer === correctAnswer) {
+            STATE.correctCount++;
+            input.style.borderColor = "#1a6b1a";
+            input.style.backgroundColor = "#1a6b1a";
+            input.style.color = "#fff";
+            document.getElementById("feedback-title").innerText = "CORRECT!";
+            document.getElementById("feedback-text").innerText = "";
+        } else {
+            STATE.hearts--;
+            updateStats();
+            input.style.borderColor = "#ff2222";
+            input.style.backgroundColor = "#ff2222";
+            input.style.color = "#fff";
+            document.getElementById("feedback-title").innrText = "WRONG.";
+            document.getElementById("feedback-text").innerText = "correct answer: " + correct;
+        }
+        document.getElementById("continue-btn").style.display = "inline-block";
+        document.getElementById("continue-btn").onclick = function() {
+            if(STATE.hearts <= 0) {
+                showScreen("gameover-screen");
+                return;
+            }
+            STATE.currentQ++;
+            if(STATE.currentQ >= STATE.currentLesson.questionTemplates.length) {
+                showScreen("complete-screen");
+            } else {
+                renderQuestion();
+            }
+        };
+    };
+}
 function renderQuestion() {
     var lesson = STATE.currentLesson;
     var qData = lesson.questionTemplates[STATE.currentQ];
@@ -153,16 +210,17 @@ function renderQuestion() {
     var progress = (STATE.currentQ / lesson.questionTemplates.length) * 100;
     document.getElementById("progress-fill").style.width = progress + "%";
     if(qData.type === "translate") {
-    renderTranslate(qData, body, checkBtn);
-} else if(qData.type === "match") {
-    STATE.matchedPairs = [];
-    STATE.matchSelections = { left: null, right: null };
-    renderMatch(qData, body, checkBtn);
-} else {
-    body.innerHTML = "<h2>TODO: " + qData.type + " type</h2>";
+        renderTranslate(qData, body, checkBtn);
+    } else if(qData.type === "match") {
+        STATE.matchedPairs = [];
+        STATE.matchSelections = { left: null, right: null };
+        renderMatch(qData, body, checkBtn);
+    } else if(qData.type === "type") {
+        renderType(qData, body, checkBtn);
+    } else {
+        body.innerHTML = "<h2>TODO: " + qData.type + " type</h2>";
     }
 }
-
 function renderTranslate(q, body, checkBtn) {
     var word = STATE.currentLesson.wordBank[q.wordIndex];
     var prompt = q.direction === "en_to_ru" ? "Translate to Russian" : "Translate to English";
