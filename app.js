@@ -175,7 +175,6 @@ var keyboard = document.createElement("div");
         "a":"ф","s":"ы","d":"в","f":"а","g":"п","h":"р","j":"о","k":"л","l":"д",";":"ж","'":"э",
         "z":"я","x":"ч","c":"с","v":"м","b":"и","n":"т","m":"ь",",":"б",".":"ю"
     }
-
     var ii = 0;
     while(ii < rows.length) {
         var rowDiv = document.createElement("div");
@@ -248,7 +247,7 @@ var keyboard = document.createElement("div");
             }
             STATE.currentQ++;
             if(STATE.currentQ >= STATE.currentLesson.questionTemplates.length) {
-                showScreen("complete-screen");
+                endLsn();
             } else {
                 renderQuestion();
             }
@@ -329,7 +328,7 @@ function renderTranslate(q, body, checkBtn) {
         if(STATE.selectedOption === correct) {
             STATE.correctCount++;
             var m = 0;
-            while(m < allOpts.length) {
+          while(m < allOpts.length) {
                 if(allOpts[m].innerText === correct) allOpts[m].classList.add("correct");
                 m++;
             }
@@ -338,7 +337,7 @@ function renderTranslate(q, body, checkBtn) {
         } else {
             STATE.hearts--;
             updateStats();
-            var p = 0;
+           var p = 0;
             while(p < allOpts.length) {
                 if(allOpts[p].classList.contains("selected")) allOpts[p].classList.add("wrong");
                 if(allOpts[p].innerText === correct) allOpts[p].classList.add("correct");
@@ -355,26 +354,23 @@ function renderTranslate(q, body, checkBtn) {
     document.getElementById("continue-btn").onclick = function() {
         if(STATE.hearts <= 0) {
             showScreen("gameover-screen");
-            return;
-        }
+           return;    }
         STATE.currentQ++;
         if(STATE.currentQ >= STATE.currentLesson.questionTemplates.length) {
-            showScreen("complete-screen");
+            endLsn();
         } else {
             renderQuestion();
         }
     };
 }
-
 function renderMatch(q, body, checkBtn) {
     var wb = STATE.currentLesson.wordBank;
     var pairs = [];
-    var i = 0;
+ var i = 0;
     while(i < q.wordIndices.length) {
         pairs.push({ russian: wb[q.wordIndices[i]].russian, english: wb[q.wordIndices[i]].english });
         i++;
     }
-
     var rights = [];
     var j = 0;
     while(j < pairs.length) {
@@ -431,12 +427,11 @@ function renderMatch(q, body, checkBtn) {
     document.getElementById("continue-btn").onclick = function() {
         STATE.currentQ++;
         if(STATE.currentQ >= STATE.currentLesson.questionTemplates.length) {
-            showScreen("complete-screen");
+            endLsn();
         } else {
             renderQuestion();
         }
-    };
-}
+    }
 
 function tryMatch(checkBtn, pairs) {
     if(STATE.matchSelections.left == null || STATE.matchSelections.right == null) return;
@@ -496,6 +491,35 @@ function tryMatch(checkBtn, pairs) {
         updateStats();
     }
 }
+}
+function endLsn() {
+    var now = new Date().getTime();
+    var t = Math.round((now - STATE.startTime) / 1000);  
+    var totalQ = STATE.currentLesson.questionTemplates.length;
+    var a = Math.round((STATE.correctCount / totalQ) * 100);  
+    var x = 10;
+ if (a === 100) {
+        x = x + 5;
+    }
+ if (STATE.doubleXP) {
+        x = x * 2;
+    }  
+    STATE.xp = STATE.xp + x;  
+  if (!STATE.completedLessons.includes(STATE.currentLesson.id)) {
+        STATE.completedLessons.push(STATE.currentLesson.id);
+    }
+    document.getElementById("final-xp").innerText = x;
+    document.getElementById("final-accuracy").innerText = a + "%";
+    document.getElementById("final-time").innerText = t + "s"; 
+
+    saveState();
+    updateStats();
+    showScreen("complete-screen");
+}
+function retHome() {
+    showScreen("home-screen");
+    renderTree();
+}
 function initHome() {
     var greetingEl = document.getElementById("owl-greeting");
     if (typeof OWL_GREETINGS !== "undefined" && OWL_GREETINGS.length > 0) {
@@ -506,6 +530,7 @@ function initHome() {
     }
     renderTree();
 }
+
 loadState();
 updateStats();
 showScreen('home-screen');
