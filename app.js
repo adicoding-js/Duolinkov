@@ -172,6 +172,85 @@ function renderLeaderboard() {
     footnote.innerText = "* Joseph S. has held first place since 1924. Do not ask questions.";
     el.parentNode.appendChild(footnote);
 }
+
+function renderShop() {
+    var grid = document.getElementById("shop-grid");
+    grid.innerHTML = "";
+    var i = 0;
+    while (i < SHOP_ITEMS.length) {
+        var item = SHOP_ITEMS[i];
+        var actualCost = item.cost;
+        if (item.id == "heart_refill") {
+            actualCost = STATE.heartRefillCost;
+        }
+    var card = document.createElement("div");
+    card.style.cssText = "background:#ede8d8;border:3px solid #111;padding:16px;box-shadow:4px 4px 0px #000;display:flex;flex-direction:column;gap:8px;";
+    var iconDiv = document.createElement("div");
+    iconDiv.style.cssText = "font-size:36px;text-align:center;";
+    iconDiv.innerText = item.icon;
+    var nameDiv = document.createElement("div");
+    nameDiv.style.cssText = "font-family:'Russo One',sans-serif;font-size:14px;color:#111;text-transform:uppercase;";
+    nameDiv.innerText = item.name;
+    var descDiv = document.createElement("div");
+    descDiv.style.cssText = "font-family:'Oswald',sans-serif;font-size:12px;color:#444;font-style:italic;flex:1;";
+     descDiv.innerText = item.desc;
+    var btn = document.createElement("button");
+    btn.style.cssText = "width:100%;padding:10px;background:#cc0000;color:#ffd700;border:2px solid #111;font-family:'Russo One',sans-serif;font-size:13px;cursor:pointer;box-shadow:2px 2px 0px #000;";
+    btn.innerText = actualCost + " XP";
+        if (STATE.xp < actualCost) {
+            btn.disabled = true;
+            btn.style.background = "#555";
+            btn.style.color = "#888";
+            btn.style.cursor = "not-allowed";
+            btn.style.boxShadow = "none";
+        }
+            btn.setAttribute("data-item-id", item.id);
+            btn.setAttribute("data-cost", actualCost);
+            btn.onclick = function(e) {
+            var itemId = e.currentTarget.getAttribute("data-item-id");
+            var cost = parseInt(e.currentTarget.getAttribute("data-cost"));
+            buyItem(itemId, cost);
+        };
+            card.appendChild(iconDiv);
+            card.appendChild(nameDiv);
+            card.appendChild(descDiv);
+            card.appendChild(btn);
+            grid.appendChild(card);
+        i++;
+    }
+}
+function buyItem(itemId, cost) {
+    if (STATE.xp < cost) {
+        alert("INSUFFICIENT FUNDS. The state does not do credit.");
+        return;
+    }
+    STATE.xp = STATE.xp - cost;
+    if (itemId == "heart_refill") {
+        STATE.hearts = 5;
+        STATE.heartRefillCost = Math.round(STATE.heartRefillCost * 1.4);
+        alert("❤️ Hearts restored. The state charges more next time.");
+    } else if (itemId == "streak_freeze") {
+        alert("🧊 Streak frozen. The KGB looks away. Tonight only.");
+    } else if (itemId == "double_xp") {
+        STATE.doubleXP = true;
+        alert("⭐ Double XP active for your next lesson. Do not waste it.");
+    } else if (itemId == "snitch") {
+        STATE.xp = STATE.xp + 200;
+        alert("🤫 Reported. +200 XP. Someone else is having a bad day.");
+    } else if (itemId == "certificate") {
+        alert("📜 Certificate issued. It means nothing. Congratulations.");
+    } else if (itemId == "bribe") {
+        alert("💰 The owl has been paid. He will not speak of this.");
+    } else if (itemId == "alibi") {
+        alert("📋 Alibi confirmed. You were never here.");
+    } else if (itemId == "name_change") {
+        alert("🪪 Name changed. The state has no record of the old you.");
+    }
+    saveState();
+    updateStats();
+    renderShop();
+    renderLeaderboard();
+}
 function startLesson(id) {
     var lesson = LESSONS.find(function (l) { return l.id == id; });
     if (!lesson) return;
@@ -574,6 +653,7 @@ function initHome() {
     }
     renderTree();
     renderLeaderboard();
+    renderShop();
 }
 setTimeout(function() {
     var allTabs = document.querySelectorAll(".tab");
