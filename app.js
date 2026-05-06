@@ -531,6 +531,12 @@ function initHome() {
     renderTree();
 }
 
+document.getElementById("retry-btn").onclick = function() {
+    STATE.hearts = 5;
+    saveState();
+    initHome();
+    showScreen("home-screen");
+};
 loadState();
 updateStats();
 showScreen('home-screen');
