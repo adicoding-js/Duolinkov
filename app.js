@@ -219,6 +219,36 @@ function renderShop() {
         i++;
     }
 }
+/* function kgbPopup(title, msg, btn) {
+    return new Promise(function(resolve) {
+        var overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;";
+        var box = document.createElement("div");
+        box.style.cssText = "background:#111;border:3px solid #cc0000;max-width:460px;width:90%;padding:32px;box-shadow:8px 8px 0px #000;text-align:center;";
+        var owlImg = document.createElement("img");
+        owlImg.src = "assets/owl.png";
+        owlImg.style.cssText = "width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 16px auto;";
+        var titleEl = document.createElement("h2");
+        titleEl.style.cssText = "font-family:'Russo One',sans-serif;color:#ffd700;font-size:20px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;";
+        titleEl.innerText = title;
+        var msgEl = document.createElement("p");
+        msgEl.style.cssText = "font-family:'Oswald',sans-serif;font-size:14px;color:#f5f0e8;line-height:1.6;margin-bottom:22px;";
+        msgEl.innerText = msg;
+        var btnEl = document.createElement("button");
+        btnEl.style.cssText = "background:#cc0000;color:#ffd700;border:3px solid #111;padding:12px 32px;font-family:'Russo One',sans-serif;font-size:15px;letter-spacing:2px;cursor:pointer;box-shadow:4px 4px 0px #000;text-transform:uppercase;";
+        btnEl.innerText = btn || "UNDERSTOOD";
+        btnEl.onclick = function() {
+            document.body.removeChild(overlay);
+            resolve();
+        };
+        box.appendChild(owlImg);
+        box.appendChild(titleEl);
+        box.appendChild(msgEl);
+        box.appendChild(btnEl);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+    });
+}*/
 function buyItem(itemId, cost) {
     if (STATE.xp < cost) {
         alert("INSUFFICIENT FUNDS. The state does not do credit.");
@@ -687,3 +717,15 @@ loadState();
 updateStats();
 showScreen('home-screen');
 initHome();
+
+var alreadyWelcomed = localStorage.getItem('duolingkov_welcomed');
+if (alreadyWelcomed == null) {
+    var welcomeOverlay = document.getElementById("welcome-overlay");
+    var welcomeBtn = document.getElementById("welcome-btn");
+    welcomeOverlay.style.display = "flex";
+    localStorage.setItem('duolingkov_welcomed', '1');
+    welcomeBtn.onclick = function() {
+        var overlayEl = document.getElementById("welcome-overlay");
+        overlayEl.style.display = "none";
+    };
+}
