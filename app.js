@@ -249,6 +249,61 @@ function kgbPopup(title, msg, btn) {
         document.body.appendChild(overlay);
     });
 }
+function bredQueueLoad() {
+    return new Promise(function(resolve) {
+        var overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:#111;z-index:150;display:flex;align-items:center;justify-content:center;flex-direction:column;";
+        
+        var owlImg = document.createElement("img");
+        owlImg.src = "assets/owl.png";
+        owlImg.style.cssText = "width:90px;height:90px;object-fit:contain;margin-bottom:24px;";
+        
+        var randomMsg = LOADING_MSGS[Math.floor(Math.random() * LOADING_MSGS.length)];
+        
+        var msgEl = document.createElement("p");
+        msgEl.style.cssText = "font-family:'Russo One',sans-serif;font-size:16px;color:#ffd700;letter-spacing:3px;text-transform:uppercase;margin-bottom:28px;text-align:center;padding:0 20px;";
+        msgEl.innerText = randomMsg;
+        
+        var barOuter = document.createElement("div");
+        barOuter.style.cssText = "width:280px;height:20px;background:#1a0000;border:3px solid #cc0000;overflow:hidden;";
+        
+        var barInner = document.createElement("div");
+        barInner.style.cssText = "height:100%;width:0%;background:repeating-linear-gradient(45deg,#cc0000,#cc0000 10px,#8b0000 10px,#8b0000 20px);transition:width 1.1s ease;";
+        
+        var subMsg = document.createElement("p");
+        subMsg.style.cssText = "font-family:'Oswald',sans-serif;font-size:11px;color:#f5f0e8;opacity:0.5;margin-top:14px;letter-spacing:1px;text-align:center;";
+        subMsg.innerText = "THIS IS MANDATORY. RESISTANCE IS FUTILE.";
+        
+        var propagandaLine = document.createElement("p");
+        propagandaLine.style.cssText = "font-family:'Oswald',sans-serif;font-size:11px;color:#cc0000;opacity:0.6;margin-top:6px;letter-spacing:1px;text-align:center;";
+        var lines = [
+            "GLORY TO THE MOTHERLAND",
+            "THE OWL IS ALWAYS WATCHING",
+            "YOUR FILE HAS BEEN UPDATED",
+            "DO NOT ATTEMPT TO CLOSE THIS TAB",
+            "LEARNING IS NOT OPTIONAL",
+            "THE STATE THANKS YOU FOR YOUR COMPLIANCE"
+        ];
+        propagandaLine.innerText = lines[Math.floor(Math.random() * lines.length)];
+        
+        barOuter.appendChild(barInner);
+        overlay.appendChild(owlImg);
+        overlay.appendChild(msgEl);
+        overlay.appendChild(barOuter);
+        overlay.appendChild(subMsg);
+        overlay.appendChild(propagandaLine);
+        document.body.appendChild(overlay);
+        
+        setTimeout(function() {
+            barInner.style.width = "100%";
+        }, 50);
+        
+        setTimeout(function() {
+            document.body.removeChild(overlay);
+            resolve();
+        }, 1400);
+    });
+}
 function buyItem(itemId, cost) {
     if (STATE.xp < cost) {
         kgbPopup("INSUFFICIENT FUNDS. The state does not do credit. Come back when you're less broke.", "UNDERSTOOD");
@@ -291,8 +346,10 @@ function startLesson(id) {
     STATE.currentQ = 0;
     STATE.correctCount = 0;
     STATE.startTime = new Date().getTime();
+    bredQueueLoad().then(function() {
     showScreen('lesson-screen');
     renderQuestion();
+});
 }
 function renderType(q, body, checkBtn) {
     var word = STATE.currentLesson.wordBank[q.wordIndex];
