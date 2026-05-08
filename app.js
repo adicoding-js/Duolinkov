@@ -464,6 +464,115 @@ var keyboard = document.createElement("div");
         };
     };
 }
+function speakRussian(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    var utt = new SpeechSynthesisUtterance(text);
+    utt.lang = "ru-RU";
+    utt.rate = 0.85;
+    var voices = window.speechSynthesis.getVoices();
+    var russianVoice = null;
+    var i = 0;
+    while (i < voices.length) {
+        if (voices[i].lang === "ru-RU") {
+            russianVoice = voices[i];
+        }
+        i++;
+    }
+    if (russianVoice != null) {
+        utt.voice = russianVoice;
+    }
+    window.speechSynthesis.speak(utt);
+}
+
+function renderListen(q, body, checkBtn) {
+    var word = STATE.currentLesson.wordBank[q.wordIndex];
+    var correct = word.english;
+    var wrongPool = [];
+    var wb = STATE.currentLesson.wordBank;
+    var ii = 0;
+    while (ii < wb.length) {
+        if (ii != q.wordIndex) {
+            wrongPool.push(wb[ii].english);
+        }
+        ii++;
+    }
+    wrongPool.sort(function() { return 0.5 - Math.random(); });
+    var options = [correct, wrongPool[0], wrongPool[1], wrongPool[2]];
+    options.sort(function() { return 0.5 - Math.random(); });
+    body.innerHTML = '<h2 class="question-prompt">WHAT DO YOU HEAR?</h2><div style="text-align:center;margin-bottom:24px;"><button id="play-audio" style="background:#cc0000;color:#ffd700;border:3px solid #111;padding:18px 36px;font-family:Russo One,sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;box-shadow:4px 4px 0px #000;">🔊 PLAY</button></div><div class="options" id="options-grid"></div>';
+    var grid = document.getElementById("options-grid");
+    var iii = 0;
+    while (iii < options.length) {
+        var opt = options[iii];
+        var btn = document.createElement("button");
+        btn.className = "option";
+        btn.innerText = opt;
+        btn.onclick = function(e) {
+            var allOpts = document.querySelectorAll(".option");
+            var x = 0;
+            while (x < allOpts.length) {
+                allOpts[x].classList.remove("selected");
+                x++;
+            }
+            e.currentTarget.classList.add("selected");
+            STATE.selectedOption = e.currentTarget.innerText;
+            checkBtn.disabled = false;
+        };
+        grid.appendChild(btn);
+        iii++;
+    }
+    document.getElementById("play-audio").onclick = function() {
+        speakRussian(word.russian);
+    };
+    setTimeout(function() {
+        speakRussian(word.russian);
+    }, 400);
+    checkBtn.onclick = function() {
+        var allOpts = document.querySelectorAll(".option");
+        var n = 0;
+        while (n < allOpts.length) {
+            allOpts[n].disabled = true;
+            n++;
+        }
+        if (STATE.selectedOption === correct) {
+            STATE.correctCount++;
+            var m = 0;
+            while (m < allOpts.length) {
+                if (allOpts[m].innerText === correct) allOpts[m].classList.add("correct");
+                m++;
+            }
+            document.getElementById("feedback-title").innerText = "CORRECT!";
+            document.getElementById("feedback-text").innerText = "";
+        } else {
+            STATE.hearts--;
+            updateStats();
+            var p = 0;
+            while (p < allOpts.length) {
+                if (allOpts[p].classList.contains("selected")) allOpts[p].classList.add("wrong");
+                if (allOpts[p].innerText === correct) allOpts[p].classList.add("correct");
+                p++;
+            }
+            document.getElementById("feedback-title").innerText = "WRONG.";
+            document.getElementById("feedback-text").innerText = "it said: " + word.russian;
+        }
+        checkBtn.disabled = true;
+        document.getElementById("continue-btn").style.display = "inline-block";
+        document.getElementById("continue-btn").onclick = function() {
+            if (STATE.hearts <= 0) {
+                showScreen("gameover-screen");
+                return;
+            }
+            STATE.currentQ++;
+            if (STATE.currentQ >= STATE.currentLesson.questionTemplates.length) {
+                endLsn();
+            } else {
+                renderQuestion();
+            }
+        };
+    };
+    document.getElementById("continue-btn").style.display = "none";
+}
 function renderQuestion() {
     var lesson = STATE.currentLesson;
     var qData = lesson.questionTemplates[STATE.currentQ];
@@ -483,8 +592,10 @@ function renderQuestion() {
         renderMatch(qData, body, checkBtn);
     } else if(qData.type === "type") {
         renderType(qData, body, checkBtn);
+    } else if(qData.type === "listen") {
+        renderListen(qData, body, checkBtn);
     } else {
-        body.innerHTML = "<h2>TODO: " + qData.type + " type</h2>";
+        body.innerHTML = "<h2>ToDo: " + qData.type + "type</h2>";
     }
 }
 function renderTranslate(q, body, checkBtn) {
@@ -783,5 +894,11 @@ if (alreadyWelcomed == null) {
     welcomeBtn.onclick = function() {
         var overlayEl = document.getElementById("welcome-overlay");
         overlayEl.style.display = "none";
+    };
+}
+
+if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = function() {
+        window.speechSynthesis.getVoices();
     };
 }
