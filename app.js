@@ -118,7 +118,7 @@ function renderTree() {
     node.setAttribute("data-id", lesson.id);
     node.onclick = function(e) {
       if(e.currentTarget.classList.contains("locked")) {
-        alert("ACCESS DENIED BY THE STATE. finish the ones before it.");
+        kgbPopup("ACCESS DENIED", "You must complete the previous lesson before the state grants you access. This is not negotiable.", "FINE");
       } else {
         startLesson(e.currentTarget.getAttribute("data-id"));
       }
@@ -219,7 +219,7 @@ function renderShop() {
         i++;
     }
 }
-/* function kgbPopup(title, msg, btn) {
+function kgbPopup(title, msg, btn) {
     return new Promise(function(resolve) {
         var overlay = document.createElement("div");
         overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;";
@@ -248,33 +248,32 @@ function renderShop() {
         overlay.appendChild(box);
         document.body.appendChild(overlay);
     });
-}*/
+}
 function buyItem(itemId, cost) {
     if (STATE.xp < cost) {
-        alert("INSUFFICIENT FUNDS. The state does not do credit.");
-        return;
-    }
+        kgbPopup("INSUFFICIENT FUNDS. The state does not do credit. Come back when you're less broke.", "UNDERSTOOD");
+        return  }
     STATE.xp = STATE.xp - cost;
     if (itemId == "heart_refill") {
         STATE.hearts = 5;
         STATE.heartRefillCost = Math.round(STATE.heartRefillCost * 1.4);
-        alert("❤️ Hearts restored. The state charges more next time.");
+        kgbPopup("MERCY GIVEN", "Your hearts have been restored. The price has also gone up. Capitalism is forbidden but we made an exception.", "THANK THE STATE");
     } else if (itemId == "streak_freeze") {
-        alert("🧊 Streak frozen. The KGB looks away. Tonight only.");
+        kgbPopup("Streak frozen. The KGB looks away. Tonight only. Do not make this a habit. They are still watching.", "GOT IT");
     } else if (itemId == "double_xp") {
         STATE.doubleXP = true;
-        alert("⭐ Double XP active for your next lesson. Do not waste it.");
+        kgbPopup("DOUBLE XP ACTIVATED", "Next lesson only. Do not waste it. The state is not running a charity.", "I WILL NOT WASTE IT");
     } else if (itemId == "snitch") {
         STATE.xp = STATE.xp + 200;
-        alert("🤫 Reported. +200 XP. Someone else is having a bad day.");
+        kgbPopup("REPORT FILED", "+200 XP has been credited to your account. Your comrade has been notified. Actually they have not been notified. They will find out eventually.", "GLORY TO ME");
     } else if (itemId == "certificate") {
-        alert("📜 Certificate issued. It means nothing. Congratulations.");
+        kgbPopup("CERTIFICATE ISSUED", "This document is entirely meaningless. It has been stamped three times for authenticity. Hang it somewhere.", "THANK YOU I GUESS");
     } else if (itemId == "bribe") {
-        alert("💰 The owl has been paid. He will not speak of this.");
+        kgbPopup("TRANSACTION COMPLETE", "The owl has been paid. He will not speak of this. Neither will you. This conversation did not happen.", "WHAT CONVERSATION");
     } else if (itemId == "alibi") {
-        alert("📋 Alibi confirmed. You were never here.");
+        kgbPopup("ALIBI CONFIRMED", "You were not here. This never happened. Your name does not appear in any records. Good day.", "I WAS NEVER HERE");
     } else if (itemId == "name_change") {
-        alert("🪪 Name changed. The state has no record of the old you.");
+        kgbPopup("IDENTITY UPDATED", "The state has no record of whoever you were before. That person is gone. You are someone new now. Probably better.", "NEW ME, WHO DIS");
     }
     saveState();
     updateStats();
