@@ -13,7 +13,8 @@ var STATE = {
     startTime: null,
     selectedOption: null,
     matchSelections: { left: null, right: null },
-    matchedPairs: []
+    matchedPairs: [],
+    usedKgbDialogs: []
 };
 function saveState() {
     var toSave = {
@@ -585,7 +586,185 @@ function renderQuestion() {
     STATE.selectedOption = null;
     var progress = (STATE.currentQ / lesson.questionTemplates.length) * 100;
     document.getElementById("progress-fill").style.width = progress + "%";
-    document.onkeydown = null;
+
+    var kgbChance = Math.random();
+    if (kgbChance < 0.18 && STATE.currentQ > 0) {
+        var kgbDialogs = [
+            {
+                title: "THE OWL HAS COUNTED YOUR TEETH VIA WEBCAM. THERE ARE TOO MANY.",
+                a: "I CAN EXPLAIN THE TEETH",
+                b: "SOME ARE NOT MINE",
+                aResult: function() { return "continue"; },
+                bResult: function() { STATE.xp = STATE.xp + 20; updateStats(); return "xp+20|The state accepts borrowed teeth as a valid explanation. Carry on."; }
+            },
+            {
+                title: "WE HAVE INTERCEPTED A DREAM YOU HAD LAST TUESDAY.",
+                a: "IT WAS METAPHORICAL",
+                b: "I DISAVOW THE DREAM",
+                aResult: function() { STATE.hearts = STATE.hearts - 1; updateStats(); return "heart-1|It was not metaphorical."; },
+                bResult: function() { return "continue"; }
+            },
+            {
+                title: "YOUR FONT PREFERENCE HAS BEEN FLAGGED AS COUNTER-REVOLUTIONARY.",
+                a: "I WILL USE TIMES NEW ROMAN",
+                b: "FONTS ARE A PERSONAL CHOICE",
+                aResult: function() { STATE.xp = STATE.xp + 10; updateStats(); return "xp+10|The state approves of Times New Roman. Grudgingly."; },
+                bResult: function() { STATE.hearts = STATE.hearts - 2; updateStats(); return "heart-2|They are not."; }
+            },
+            {
+                title: "A DOG IN SECTOR 7 DESCRIBED YOU TO AUTHORITIES.",
+                a: "DOGS CANNOT TALK",
+                b: "WHAT DID HE SAY",
+                aResult: function() { STATE.hearts = STATE.hearts - 1; updateStats(); return "heart-1|This one does."; },
+                bResult: function() {
+                    var roll = Math.random();
+                    if (roll < 0.5) {
+                        STATE.xp = STATE.xp + 15;
+                        updateStats();
+                        return "xp+15|Nothing bad. You are fine. Probably.";
+                    } else {
+                        STATE.hearts = STATE.hearts - 1;
+                        updateStats();
+                        return "heart-1|Enough. That is all we will say.";
+                    }
+                }
+            },
+            {
+                title: "YOU PAUSED BEFORE ANSWERING QUESTION 2. WE NOTICED.",
+                a: "I WAS THINKING",
+                b: "I WAS NOT PAUSING I WAS LOADING",
+                aResult: function() { STATE.hearts = STATE.hearts - 1; updateStats(); return "heart-1|Thinking is permitted between 2pm and 2:04pm only."; },
+                bResult: function() { STATE.xp = STATE.xp + 10; updateStats(); return "xp+10|Acceptable technical excuse. Do not reuse it."; }
+            },
+            {
+                title: "THE CEILING IN YOUR ROOM HAS SUBMITTED A FORMAL COMPLAINT.",
+                a: "ABOUT WHAT",
+                b: "I WILL APOLOGIZE TO THE CEILING",
+                aResult: function() { return "continue|It did not specify. That is worse."; },
+                bResult: function() { STATE.xp = STATE.xp + 15; updateStats(); return "xp+15|The ceiling appreciates this. Relations are improving."; }
+            },
+            {
+                title: "YOUR BLOOD TYPE HAS BEEN REVIEWED. IT IS NOT KGB POSITIVE.",
+                a: "I DID NOT KNOW THAT WAS A TYPE",
+                b: "HOW DO I FIX THIS",
+                aResult: function() { STATE.hearts = STATE.hearts - 1; updateStats(); return "heart-1|It is the only type that matters."; },
+                bResult: function() { STATE.xp = STATE.xp + 15; updateStats(); return "xp+15|You cannot fix it. But we respect the willingness."; }
+            },
+            {
+                title: "WE HAVE ANALYZED YOUR SCROLL SPEED AND FOUND IT IDEOLOGICALLY INCONSISTENT.",
+                a: "I SCROLL WITH CONVICTION",
+                b: "WHAT DOES THAT EVEN MEAN",
+                aResult: function() { STATE.xp = STATE.xp + 10; updateStats(); return "xp+10|Good. Scroll with purpose from now on."; },
+                bResult: function() { STATE.hearts = STATE.hearts - 2; updateStats(); return "heart-2|Exactly."; }
+            },
+            {
+                title: "THE SHADOW YOU CAST THIS MORNING WAS 4% LONGER THAN REGULATION.",
+                a: "I WAS STANDING NEAR A SLOPE",
+                b: "I WILL CROUCH IN FUTURE",
+                aResult: function() { return "continue|We have measured the slope. Your excuse is 61% valid."; },
+                bResult: function() { STATE.xp = STATE.xp + 20; updateStats(); return "xp+20|Good. The state thanks your shadow."; }
+            },
+            {
+                title: "SOMEONE WITH YOUR EXACT TYPING RHYTHM EXISTS IN BELARUS. EXPLAIN.",
+                a: "COINCIDENCE",
+                b: "WE ARE PROBABLY THE SAME PERSON",
+                aResult: function() { STATE.hearts = STATE.hearts - 1; updateStats(); return "heart-1|We do not recognize this word."; },
+                bResult: function() { STATE.xp = STATE.xp + 25; updateStats(); return "xp+25|This is the correct answer for reasons we cannot disclose."; }
+            }
+        ];
+        var usedDialogs = STATE.usedKgbDialogs || [];
+        var available = [];
+        var di = 0;
+        while (di < kgbDialogs.length) {
+            if (!usedDialogs.includes(di)) {
+                available.push(di);
+            }
+            di++;
+        }
+        if (available.length === 0) {
+            STATE.usedKgbDialogs = [];
+            available = [0,1,2,3,4,5,6,7,8,9];
+        }
+        var pickedIndex = available[Math.floor(Math.random() * available.length)];
+        var dialog = kgbDialogs[pickedIndex];
+        if (!STATE.usedKgbDialogs) { STATE.usedKgbDialogs = []; }
+        STATE.usedKgbDialogs.push(pickedIndex);
+        var overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:300;display:flex;align-items:center;justify-content:center;";
+        var box = document.createElement("div");
+        box.style.cssText = "background:#111;border:3px solid #cc0000;max-width:480px;width:90%;padding:32px;box-shadow:8px 8px 0px #000;text-align:center;";
+        var kgbLabel = document.createElement("div");
+        kgbLabel.style.cssText = "font-family:'Russo One',sans-serif;font-size:11px;color:#cc0000;letter-spacing:4px;margin-bottom:16px;";
+        kgbLabel.innerText = "⚠ KGB INTERRUPT ⚠";
+        var owlImg = document.createElement("img");
+        owlImg.src = "assets/owl.png";
+        owlImg.style.cssText = "width:70px;height:70px;object-fit:contain;display:block;margin:0 auto 16px auto;";
+        var titleEl = document.createElement("p");
+        titleEl.style.cssText = "font-family:'Russo One',sans-serif;color:#ffd700;font-size:16px;letter-spacing:2px;margin-bottom:28px;line-height:1.5;";
+        titleEl.innerText = dialog.title;
+        var btnA = document.createElement("button");
+        btnA.style.cssText = "width:100%;padding:14px;background:#1a0000;color:#f5f0e8;border:2px solid #cc0000;font-family:'Russo One',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;margin-bottom:10px;text-align:left;";
+        btnA.innerText = "A)  " + dialog.a;
+        var btnB = document.createElement("button");
+        btnB.style.cssText = "width:100%;padding:14px;background:#1a0000;color:#f5f0e8;border:2px solid #cc0000;font-family:'Russo One',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;text-align:left;";
+        btnB.innerText = "B)  " + dialog.b;
+        var resultEl = document.createElement("p");
+        resultEl.style.cssText = "font-family:'Oswald',sans-serif;font-size:13px;color:#f5f0e8;margin-top:20px;font-style:italic;opacity:0.8;min-height:20px;display:none;";
+        var continueBtn = document.createElement("button");
+        continueBtn.style.cssText = "margin-top:18px;padding:12px 32px;background:#cc0000;color:#ffd700;border:3px solid #111;font-family:'Russo One',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer;box-shadow:4px 4px 0px #000;display:none;";
+        continueBtn.innerText = "UNDERSTOOD. PROCEED.";
+
+        function handleChoice(resultFn, btn, otherBtn) {
+            btn.style.background = "#cc0000";
+            btn.style.color = "#ffd700";
+            otherBtn.disabled = true;
+            otherBtn.style.opacity = "0.3";
+            var rawResult = resultFn();
+            var parts = rawResult ? rawResult.split("|") : ["continue"];
+            var outcome = parts[0];
+            var flavor = parts[1] || "";
+            if (flavor) {
+                resultEl.innerText = flavor;
+                resultEl.style.display = "block";
+            }
+            if (outcome === "continue") {
+                resultEl.style.color = "#f5f0e8";
+            } else if (outcome.indexOf("xp") !== -1) {
+                resultEl.style.color = "#ffd700";
+            } else if (outcome.indexOf("heart") !== -1) {
+                resultEl.style.color = "#ff2222";
+                if (STATE.hearts <= 0) {
+                    continueBtn.innerText = "TO THE GULAG.";
+                }
+            }
+            continueBtn.style.display = "inline-block";
+            resultEl.style.display = "block";
+        }
+
+        btnA.onclick = function() {
+            handleChoice(dialog.aResult, btnA, btnB);
+        };
+        btnB.onclick = function() {
+            handleChoice(dialog.bResult, btnB, btnA);
+        };
+        continueBtn.onclick = function() {
+            document.body.removeChild(overlay);
+            if (STATE.hearts <= 0) {
+                showScreen("gameover-screen");
+                return;
+            }
+        };
+        box.appendChild(kgbLabel);
+        box.appendChild(owlImg);
+        box.appendChild(titleEl);
+        box.appendChild(btnA);
+        box.appendChild(btnB);
+        box.appendChild(resultEl);
+        box.appendChild(continueBtn);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        return;
+    }
     if(qData.type === "translate") {
         renderTranslate(qData, body, checkBtn);
     } else if(qData.type === "match") {
