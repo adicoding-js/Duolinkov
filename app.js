@@ -44,8 +44,10 @@ function loadState() {
       STATE.doubleXP = parsed.doubleXP;
 
     if (STATE.lastPlayed != null) {
-        var now = new Date().getTime();
-        var last = new Date(STATE.lastPlayed).getTime();
+        var now = new Date().toDateString();
+        var last = new Date(STATE.lastPlayed).toDateString();
+        var nowMs = new Date().getTime();
+        var lastMs = new Date(STATE.lastPlayed).getTime();
         var diffDays = (now - last) / 86400000;
         if (diffDays > 1) {
             STATE.streak = 0;
@@ -829,6 +831,11 @@ function endLsn() {
   if (!STATE.completedLessons.includes(STATE.currentLesson.id)) {
         STATE.completedLessons.push(STATE.currentLesson.id);
     }
+    var todaystreak = new Date().toDateString();
+  if (STATE.lastPlayed != todaystreak) {
+        STATE.streak = STATE.streak + 1;
+        STATE.lastPlayed = todaystreak;
+  }
     document.getElementById("final-xp").innerText = x;
     document.getElementById("final-accuracy").innerText = a + "%";
     document.getElementById("final-time").innerText = t + "s"; 
