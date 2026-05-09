@@ -170,11 +170,15 @@ function renderLeaderboard() {
         rank++;
         jj++;
     }
+    var oldNote = document.getElementById("leaderboard-footnote");
+    if (oldNote) {
+        oldNote.parentNode.removeChild(oldNote);
+    }
     var footnote = document.createElement("p");
+    footnote.id = "leaderboard-footnote";
     footnote.style.cssText = "font-size:11px;color:#888;font-style:italic;padding:8px 14px;font-family:'Oswald',sans-serif;";
     footnote.innerText = "* Joseph S. has held first place since 1924. Do not ask questions.";
     el.parentNode.appendChild(footnote);
-}
 
 function renderShop() {
     var grid = document.getElementById("shop-grid");
