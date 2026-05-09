@@ -14,7 +14,10 @@ var STATE = {
     selectedOption: null,
     matchSelections: { left: null, right: null },
     matchedPairs: [],
-    usedKgbDialogs: []
+    usedKgbDialogs: [],
+    supabaseUser: null,
+    username: "Comrade"
+
 };
 function saveState() {
     var toSave = {
@@ -25,7 +28,8 @@ function saveState() {
         completedLessons: STATE.completedLessons,
         achievements: STATE.achievements,
         heartRefillCost: STATE.heartRefillCost,
-        doubleXP: STATE.doubleXP
+        doubleXP: STATE.doubleXP,
+        username: STATE.username
     };
         localStorage.setItem('duolingkov', JSON.stringify(toSave));
 }
@@ -43,6 +47,7 @@ function loadState() {
       STATE.achievements = parsed.achievements;
       STATE.heartRefillCost = parsed.heartRefillCost;
       STATE.doubleXP = parsed.doubleXP;
+      STATE.username = parsed.username || "Comrade";
 
     if (STATE.lastPlayed != null) {
         var now = new Date().toDateString();
@@ -1125,22 +1130,120 @@ document.getElementById("retry-btn").onclick = function() {
     showScreen("home-screen");
     };
 
-loadState();
-updateStats();
-showScreen('home-screen');
-initHome();
-
-var alreadyWelcomed = localStorage.getItem('duolingkov_welcomed');
-if (alreadyWelcomed == null) {
-    var welcomeOverlay = document.getElementById("welcome-overlay");
-    var welcomeBtn = document.getElementById("welcome-btn");
-    welcomeOverlay.style.display = "flex";
-    localStorage.setItem('duolingkov_welcomed', '1');
-    welcomeBtn.onclick = function() {
-        var overlayEl = document.getElementById("welcome-overlay");
-        overlayEl.style.display = "none";
-    };
+function bootAuth() {
+    supabase.auth.getSession().then(function(result) {
+        var session = result.data.session;
+        if (session != null) {
+            STATE.supabaseUser = session.user;
+            loadState();
+            updateStats();
+            showScreen('home-screen');
+            initHome();
+        } else {
+            showAuthModal();
+        }
+    });
 }
+
+function showAuthModal() {
+    var overlay = document.getElementById("auth-overlay");
+    overlay.style.display = "flex";
+}
+function hideAuthModal() {
+    var overlay = document.getElementById("auth-overlay");
+    overlay.style.display = "none";
+}
+document.getElementById("auth-guest-btn").onclick = function() {
+    var usernameInput = document.getElementById("auth-guest-username");
+    var errorEl = document.getElementById("auth-error");
+    var name = usernameInput.value.trim();
+    if (name.length < 2) {
+        errorEl.innerText = "the state requires at least 2 characters. try harder.";
+        return;
+    }
+    errorEl.innerText = "";
+    supabase.auth.signInAnonymously().then(function(result) {
+        if (result.error) {
+            errorEl.innerText = "anonymous auth failed: " + result.error.message;
+            return;
+        }
+        STATE.supabaseUser = result.data.user;
+        STATE.username = name;
+
+        saveState();
+        hideAuthModal();
+        loadState();
+        updateStats();
+        showScreen('home-screen');
+        initHome();
+    });
+};
+document.getElementById("auth-show-login-btn").onclick = function() {
+    document.getElementById("auth-guest-form").style.display = "none";
+    document.getElementById("auth-login-form").style.display = "block";
+    document.getElementById("auth-error").innerText = "";
+};
+document.getElementById("auth-show-guest-btn").onclick = function() {
+    document.getElementById("auth-login-form").style.display = "none";
+    document.getElementById("auth-guest-form").style.display = "block";
+    document.getElementById("auth-error").innerText = "";
+};
+document.getElementById("auth-signup-btn").onclick = function() {
+    var email = document.getElementById("auth-email").value.trim();
+    var password = document.getElementById("auth-password").value.trim();
+    var username = document.getElementById("auth-username").value.trim();
+    var errorEl = document.getElementById("auth-error");
+    if (!email || !password || !username) {
+        errorEl.innerText = "fill everything in. the state does not accept incomplete forms.";
+        return;
+    }
+    errorEl.innerText = "signing you up...";
+    supabase.auth.signUp({
+        email: email,
+        password: password
+    }).then(function(result) {
+        if (result.error) {
+            errorEl.innerText = result.error.message;
+            return;
+        }
+        STATE.supabaseUser = result.data.user;
+        STATE.username = username;
+        saveState();
+        hideAuthModal();
+        loadState();
+        updateStats();
+        showScreen('home-screen');
+        initHome();
+    });
+};
+document.getElementById("auth-login-btn").onclick = function() {
+    var email = document.getElementById("auth-email").value.trim();
+    var password = document.getElementById("auth-password").value.trim();
+    var errorEl = document.getElementById("auth-error");
+    if (!email || !password) {
+        errorEl.innerText = "email and password. both. not optional.";
+        return;
+    }
+    errorEl.innerText = "logging in...";
+    supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+    }).then(function(result) {
+        if (result.error) {
+            errorEl.innerText = result.error.message;
+            return;
+        }
+        STATE.supabaseUser = result.data.user;
+
+        loadState();
+        updateStats();
+        showScreen('home-screen');
+        initHome();
+        hideAuthModal();
+    });
+};
+
+bootAuth();
 
 if (window.speechSynthesis) {
     window.speechSynthesis.onvoiceschanged = function() {

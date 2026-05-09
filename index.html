@@ -110,21 +110,86 @@
               <button id="retry-btn">BEG FOR FORGIVENESS</button>
             </div>
           </section>
-  <div id="welcome-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999;align-items:center;justify-content:center;">
-        <div id="welcome-box" style="background:#111;border:3px solid #cc0000;max-width:480px;width:90%;padding:36px 32px;box-shadow:8px 8px 0px #000;text-align:center;position:relative;">
-            <img src="assets/owl.png" style="width:100px;height:100px;object-fit:contain;display:block;margin:0 auto 18px auto;">
-            <h2 style="font-family:'Russo One',sans-serif;color:#ffd700;font-size:22px;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">WELCOME, COMRADE</h2>
-            <p style="font-family:'Oswald',sans-serif;font-size:15px;color:#f5f0e8;line-height:1.6;margin-bottom:10px;">You have been selected to learn Russian.</p>
-            <p style="font-family:'Oswald',sans-serif;font-size:14px;color:#f5f0e8;opacity:0.75;line-height:1.6;margin-bottom:24px;">This was not optional. The owl is watching. Failure to comply will be noted in your permanent file.</p>
-            <button id="welcome-btn" style="background:#cc0000;color:#ffd700;border:3px solid #111;padding:14px 36px;font-family:'Russo One',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;box-shadow:4px 4px 0px #000;text-transform:uppercase;">СЛАВА! (OK FINE)</button>
+  <div id="auth-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:999;align-items:center;justify-content:center;">
+    <div style="background:#111;border:3px solid #cc0000;max-width:460px;width:90%;padding:36px 32px;box-shadow:8px 8px 0px #000;text-align:center;">
+        <img src="assets/owl.png" style="width:90px;height:90px;object-fit:contain;display:block;margin:0 auto 16px auto;">
+        
+        <h2 style="font-family:'Russo One',sans-serif;color:#ffd700;font-size:20px;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;">
+            IDENTIFY YOURSELF
+        </h2>
+        <p style="font-family:'Oswald',sans-serif;font-size:13px;color:#f5f0e8;opacity:0.6;margin-bottom:24px;">
+            the state requires identification before proceeding.
+        </p>
+        <div id="auth-guest-form">
+            <input 
+                id="auth-guest-username" 
+                type="text" 
+                placeholder="enter a username, comrade" 
+                style="width:100%;padding:12px;font-family:'Oswald',sans-serif;font-size:15px;background:#1a0000;border:2px solid #cc0000;color:#f5f0e8;margin-bottom:12px;outline:none;"
+            >
+            <button 
+                id="auth-guest-btn" 
+                style="width:100%;padding:13px;background:#cc0000;color:#ffd700;border:3px solid #111;font-family:'Russo One',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer;box-shadow:4px 4px 0px #000;margin-bottom:12px;"
+            >
+                PLAY AS GUEST
+            </button>
+
+            <button 
+                id="auth-show-login-btn" 
+                style="width:100%;padding:10px;background:transparent;color:#f5f0e8;border:2px solid #444;font-family:'Oswald',sans-serif;font-size:13px;cursor:pointer;"
+            >
+                have an account? sign in
+            </button>
         </div>
+        <div id="auth-login-form" style="display:none;">
+            <input 
+                id="auth-username" 
+                type="text" 
+                placeholder="username (signup only)" 
+                style="width:100%;padding:12px;font-family:'Oswald',sans-serif;font-size:15px;background:#1a0000;border:2px solid #cc0000;color:#f5f0e8;margin-bottom:10px;outline:none;"
+            >
+            <input 
+                id="auth-email" 
+                type="email" 
+                placeholder="email" 
+                style="width:100%;padding:12px;font-family:'Oswald',sans-serif;font-size:15px;background:#1a0000;border:2px solid #cc0000;color:#f5f0e8;margin-bottom:10px;outline:none;"
+            >
+            <input 
+                id="auth-password" 
+                type="password" 
+                placeholder="password" 
+                style="width:100%;padding:12px;font-family:'Oswald',sans-serif;font-size:15px;background:#1a0000;border:2px solid #cc0000;color:#f5f0e8;margin-bottom:12px;outline:none;"
+            >
+            <button 
+                id="auth-signup-btn" 
+                style="width:100%;padding:13px;background:#cc0000;color:#ffd700;border:3px solid #111;font-family:'Russo One',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer;box-shadow:4px 4px 0px #000;margin-bottom:8px;"
+            >
+                SIGN UP
+            </button>
+            <button 
+                id="auth-login-btn" 
+                style="width:100%;padding:13px;background:#1a0000;color:#ffd700;border:2px solid #cc0000;font-family:'Russo One',sans-serif;font-size:14px;letter-spacing:2px;cursor:pointer;margin-bottom:12px;"
+            >
+                LOG IN
+            </button>
+            <button 
+                id="auth-show-guest-btn" 
+                style="width:100%;padding:10px;background:transparent;color:#f5f0e8;border:2px solid #444;font-family:'Oswald',sans-serif;font-size:13px;cursor:pointer;"
+            >
+                back to guest
+            </button>
+        </div>
+        <p id="auth-error" style="font-family:'Oswald',sans-serif;font-size:13px;color:#ff2222;margin-top:14px;min-height:18px;"></p>
     </div>
+</div>
   </main>
  
 <footer class="footer">
  <p>© 1917-2026-27 ● ДУОЛИНГКОВ STATE LANGUAGE BUREAU ● ALL INFORMATION WILL BE RECORDED FOR (you don't need to know) PURPOSES.</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 
