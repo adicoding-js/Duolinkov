@@ -872,7 +872,12 @@ setTimeout(function() {
         t++;
     }
 }, 0);
-
+document.getElementById("quit-btn").onclick = function() {
+    kgbPopup("COWARD DETECTED", "You are abandoning your lesson. The state has noted this. Your Progress won't be saved. Are You Sure?", "YES I AM A COWARD").then(function() {
+        showScreen("home-screen");
+        renderTree();
+    });
+};
 document.getElementById("retry-btn").onclick = function() {
     STATE.hearts = 5;
     saveState();
