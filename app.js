@@ -49,7 +49,7 @@ function loadState() {
         var last = new Date(STATE.lastPlayed).toDateString();
         var nowMs = new Date().getTime();
         var lastMs = new Date(STATE.lastPlayed).getTime();
-        var diffDays = (now - last) / 86400000;
+        var diffDays = (nowMs - lastMs) / 86400000;
         if (diffDays > 1) {
             STATE.streak = 0;
             saveState();
@@ -179,6 +179,7 @@ function renderLeaderboard() {
     footnote.style.cssText = "font-size:11px;color:#888;font-style:italic;padding:8px 14px;font-family:'Oswald',sans-serif;";
     footnote.innerText = "* Joseph S. has held first place since 1924. Do not ask questions.";
     el.parentNode.appendChild(footnote);
+}
 
 function renderShop() {
     var grid = document.getElementById("shop-grid");
@@ -1028,8 +1029,56 @@ function endLsn() {
 }
 function retHome() {
     showScreen("home-screen");
-    renderTree();
+   renderTree();
 }
+function injectFiveYearPlan() {
+    var old = document.getElementById("five-year-plan");
+    if (old) {
+        old.parentNode.removeChild(old);
+    }
+    var pcts = [127, 134, 119, 143, 158, 122, 131, 147, 136, 129];
+    var pct = pcts[Math.floor(Math.random() * pcts.length)];
+    var banner = document.createElement("div");
+    banner.id = "five-year-plan";
+    banner.style.cssText = "background:#cc0000;border:3px solid #111;border-top:none;padding:10px 16px;margin-bottom:16px;box-shadow:4px 4px 0px #000;";
+    var top = document.createElement("div");
+    top.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;";
+    var label = document.createElement("span");
+    label.style.cssText = "font-family:'Russo One',sans-serif;font-size:12px;color:#ffd700;letter-spacing:2px;";
+    label.innerText = "★ FIVE YEAR PLAN ● LANGUAGE QUOTA";
+    var pctLabel = document.createElement("span");
+    pctLabel.style.cssText = "font-family:'Russo One',sans-serif;font-size:14px;color:#ffd700;";
+    pctLabel.innerText = pct + "% OF QUOTA MET";
+    top.appendChild(label);
+    top.appendChild(pctLabel);
+    var barOuter = document.createElement("div");
+    barOuter.style.cssText = "width:100%;height:12px;background:#8b0000;border:2px solid #111;overflow:hidden;position:relative;";
+    var barInner = document.createElement("div");
+    barInner.style.cssText = "height:100%;width:100%;background:repeating-linear-gradient(90deg,#ffd700,#ffd700 8px,#ffaa00 8px,#ffaa00 16px);";
+    var overflowIndicator = document.createElement("div");
+    overflowIndicator.style.cssText = "position:absolute;right:4px;top:0;height:100%;display:flex;align-items:center;";
+    var arrow = document.createElement("span");
+    arrow.style.cssText = "font-size:10px;color:#111;font-family:'Russo One',sans-serif;";
+    arrow.innerText = "▶▶";
+    overflowIndicator.appendChild(arrow);
+    barOuter.appendChild(barInner);
+    barOuter.appendChild(overflowIndicator);
+    var sub = document.createElement("p");
+    sub.style.cssText = "font-family:'Oswald',sans-serif;font-size:11px;color:#ffd700;opacity:0.8;margin-top:6px;font-style:italic;";
+    var subs = [
+        "all figures independently verified by the state. do not verify.",
+        "quota exceeded for the 7th consecutive year. the numbers are real.",
+        "any discrepancies are the result of western sabotage.",
+        "comrades who questioned these figures are no longer with us.",
+        "the bar cannot go higher because that would be unnecessary."
+    ];
+    sub.innerText = subs[Math.floor(Math.random() * subs.length)];
+    banner.appendChild(top);
+    banner.appendChild(barOuter);
+    banner.appendChild(sub);
+    var tabs = document.querySelector(".tabs");
+    tabs.parentNode.insertBefore(banner, tabs);
+} 
 function initHome() {
     var greetingEl = document.getElementById("owl-greeting");
     if (typeof OWL_GREETINGS !== "undefined" && OWL_GREETINGS.length > 0) {
@@ -1041,6 +1090,7 @@ function initHome() {
     renderTree();
     renderLeaderboard();
     renderShop();
+    injectFiveYearPlan();
 }
 setTimeout(function() {
     var allTabs = document.querySelectorAll(".tab");
