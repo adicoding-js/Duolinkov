@@ -135,57 +135,87 @@ function renderTree() {
     i++;
   }
 }
-
 function renderLeaderboard() {
     var el = document.getElementById("leaderboard");
-    el.innerHTML = "";
-    var list = [];
-    var ii = 0;
-    while (ii < COMRADES.length) {
-        list.push({ name: COMRADES[ii].name, xp: COMRADES[ii].xp, flag: COMRADES[ii].flag, you: false });
-        ii++;
-    }
-    list.push({ name: "You", xp: STATE.xp, flag: "👤", you: true });
-    list.sort(function(a, b) { return b.xp - a.xp; });
-    var rank = 1;
-    var jj = 0;
-    while (jj < list.length) {
-        var entry = list[jj];
-        var li = document.createElement("li");
-        li.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:2px solid #111;font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;";
-        if (entry.you) {
-            li.style.backgroundColor = "#cc0000";
-            li.style.color = "#ffd700";
-        } else {
-            li.style.backgroundColor = "#ede8d8";
-            li.style.color = "#111";
+    el.innerHTML = "<p style='font-family:Oswald,sans-serif;color:#888;padding:14px;'>loading comrades...</p>";
+    supabase.from("leaderboard").select("*").order("xp", { ascending: false }).then(function(result) {
+        if (result.error) {
+            console.log("leaderboard fetch failed:", result.error.message);
+            return;
         }
-        var rankSpan = document.createElement("span");
-        rankSpan.style.cssText = "background:#111;color:#ffd700;font-family:'Russo One',sans-serif;font-size:13px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;";
-        rankSpan.innerText = rank;
-        var nameSpan = document.createElement("span");
-        nameSpan.style.cssText = "flex:1;margin-left:8px;";
-        nameSpan.innerText = entry.flag + " " + entry.name;
-        var xpSpan = document.createElement("span");
-        xpSpan.innerText = entry.xp + " XP";
-        li.appendChild(rankSpan);
-        li.appendChild(nameSpan);
-        li.appendChild(xpSpan);
-        el.appendChild(li);
-        rank++;
-        jj++;
-    }
+        el.innerHTML = "";
+        var realUsers = result.data || [];
+        var list = [];
+        var ii = 0;
+        while (ii < COMRADES.length) {
+            list.push({
+                name: COMRADES[ii].name,
+                xp: COMRADES[ii].xp,
+                flag: COMRADES[ii].flag,
+                you: false
+            });
+            ii++;
+        }
+        var jj = 0;
+        while (jj < realUsers.length) {
+            var ru = realUsers[jj];
+            var isYou = STATE.supabaseUser != null && ru.user_id === STATE.supabaseUser.id;
+            list.push({
+                name: ru.username || "Comrade",
+                xp: ru.xp || 0,
+                flag: isYou ? "👤" : "🇷🇺",
+                you: isYou
+            });
+            jj++;
+        }
+        list.sort(function(a, b) {
+            return b.xp - a.xp;
+        });
+        var rank = 1;
+        var kk = 0;
+        while (kk < list.length) {
+            var entry = list[kk];
+            var li = document.createElement("li");
+
+            li.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:2px solid #111;font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;";
+
+            if (entry.you) {
+                li.style.backgroundColor = "#cc0000";
+                li.style.color = "#ffd700";
+            } else {
+                li.style.backgroundColor = "#ede8d8";
+                li.style.color = "#111";
+            }
+
+    var rankSpan = document.createElement("span");
+    rankSpan.style.cssText = "background:#111;color:#ffd700;font-family:'Russo One',sans-serif;font-size:13px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;";
+    rankSpan.innerText = rank;
+    var nameSpan = document.createElement("span");
+    nameSpan.style.cssText = "flex:1;margin-left:8px;";
+    nameSpan.innerText = entry.flag + " " + entry.name;
+    var xpSpan = document.createElement("span");
+    xpSpan.innerText = entry.xp + " XP";
+
+            li.appendChild(rankSpan);
+            li.appendChild(nameSpan);
+            li.appendChild(xpSpan);
+            el.appendChild(li);
+
+            rank++;
+            kk++;
+        }
     var oldNote = document.getElementById("leaderboard-footnote");
     if (oldNote) {
-        oldNote.parentNode.removeChild(oldNote);
-    }
+            oldNote.parentNode.removeChild(oldNote);
+        }
     var footnote = document.createElement("p");
     footnote.id = "leaderboard-footnote";
     footnote.style.cssText = "font-size:11px;color:#888;font-style:italic;padding:8px 14px;font-family:'Oswald',sans-serif;";
     footnote.innerText = "* Joseph S. has held first place since 1924. Do not ask questions.";
-    el.parentNode.appendChild(footnote);
-}
 
+    el.parentNode.appendChild(footnote);
+    });
+}
 function renderShop() {
     var grid = document.getElementById("shop-grid");
     grid.innerHTML = "";
@@ -1029,8 +1059,26 @@ function endLsn() {
     document.getElementById("final-accuracy").innerText = a + "%";
     document.getElementById("final-time").innerText = t + "s"; 
     saveState();
+    pushToLeaderBoard();
     updateStats();
     showScreen("complete-screen");
+}
+function pushToLeaderboard() {
+    if (STATE.supabaseUser == null) return;
+    var rowData = {
+        user_id: STATE.supabaseUser.id,
+        username: STATE.username,
+        xp: STATE.xp,
+        streak: STATE.streak,
+        updated_at: new Date().toISOString()
+    };
+    supabase.from("leaderboard").upsert(rowData, { onConflict: "user_id" }).then(function(result) {
+        if (result.error) {
+            console.log("leaderboard push failed:", result.error.message);
+        } else {
+            console.log("leaderboard updated");
+        }
+    });
 }
 function retHome() {
     showScreen("home-screen");
