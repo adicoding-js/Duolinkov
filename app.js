@@ -379,20 +379,64 @@ function buyItem(itemId, cost) {
     renderLeaderboard();
 }
 function startLesson(id) {
-    var lesson = LESSONS.find(function (l) { return l.id == id; });
-    if (!lesson) return;
-    if (STATE.hearts <= 0) {
-        alert("GO TO GULAG (No hearts left).");
-        return;
+    var lesson = null;
+    var ii = 0;
+    while (ii < LESSONS.length) {
+        if (LESSONS[ii].id == id) {
+            lesson = LESSONS[ii];
+        }
+        ii++;
     }
-    STATE.currentLesson = lesson;
-    STATE.currentQ = 0;
-    STATE.correctCount = 0;
-    STATE.startTime = new Date().getTime();
-    bredQueueLoad().then(function() {
+if (!lesson) return;
+if (STATE.hearts <= 0) {
+        kgbPopup("NO HEARTS", "You have no hearts left. The state does not do charity.", "UNDERSTOOD");
+   return;
+    }
+bredQueueLoad().then(function() {
     showScreen('lesson-screen');
-    renderQuestion();
-});
+         fetch("/api/generate-lesson", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                title: lesson.title,
+                subtitle: lesson.subtitle
+            })
+        })
+    .then(function(r) {
+            return r.json();
+        })
+    .then(function(aiData) {
+    if (aiData.error) {
+        console.log("AI lesson failed, using fallback");
+            STATE.currentLesson = lesson;
+        } else {
+            var aiLesson = {
+                id: lesson.id,
+                icon: lesson.icon,
+                title: lesson.title,
+                subtitle: lesson.subtitle,
+                xpReward: lesson.xpReward,
+                wordBank: aiData.wordBank,
+                questionTemplates: aiData.questionTemplates
+                };
+            STATE.currentLesson = aiLesson;
+        }
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+
+        renderQuestion();
+    })
+        .catch(function(err) {
+            console.log("fetch failed, using fallback:", err);
+            STATE.currentLesson = lesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+
+            renderQuestion();
+        });
+    });
 }
 function renderType(q, body, checkBtn) {
     var word = STATE.currentLesson.wordBank[q.wordIndex];

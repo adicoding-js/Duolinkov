@@ -8,10 +8,10 @@ app.use(express.json());
 app.use(express.static("."));
 
 app.post("/api/generate-lesson", function(req, res) {
-    var lessonTitleString = req.body.title; // new - fixed typo from req.boy
+    var lessonTitleString = req.body.title; 
     var lessonSubtitleString = req.body.subtitle;
     var urlToCall = "https://ai.hackclub.com/proxy/v1/chat/completions";
-    var theApiKey = process.env.HACKCLUB_API_KEY; // new - reading from env properly
+    var theApiKey = process.env.api; 
     var instructionsForAi = "You are a Soviet language instructor for the ДУОЛИНКОВ app. " +
     "Generate a Russian lesson for the topic: " + lessonTitleString + " (" + lessonSubtitleString + "). " +
     "You MUST output ONLY raw JSON. No text before or after. No markdown. No backticks. " +
@@ -31,7 +31,7 @@ app.post("/api/generate-lesson", function(req, res) {
     messagesList.push(messageTwo);
 
     var bigBodyObject = {
-        "model":"qwen/qwen3-32b",
+        "model":"google/gemini-3.1-flash",
         "messages":messagesList,
         "temperature": 0.7
     };
