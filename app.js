@@ -16,7 +16,9 @@ var STATE = {
     matchedPairs: [],
     usedKgbDialogs: [],
     supabaseUser: null,
-    username: "Comrade"
+    username: "Comrade",
+    weakWords: [],
+    lessonCache: {}
 
 };
 function saveState() {
@@ -29,7 +31,8 @@ function saveState() {
         achievements: STATE.achievements,
         heartRefillCost: STATE.heartRefillCost,
         doubleXP: STATE.doubleXP,
-        username: STATE.username
+        username: STATE.username,
+        weakWords: STATE.weakWords
     };
         localStorage.setItem('duolingkov', JSON.stringify(toSave));
 }
@@ -47,6 +50,7 @@ function loadState() {
       STATE.achievements = parsed.achievements;
       STATE.heartRefillCost = parsed.heartRefillCost;
       STATE.doubleXP = parsed.doubleXP;
+      STATE.weakWords = parsed.weakWords || [];
       STATE.username = parsed.username || "Comrade";
 
     if (STATE.lastPlayed != null) {
@@ -385,66 +389,78 @@ function startLesson(id) {
         if (LESSONS[ii].id == id) {
             lesson = LESSONS[ii];
         }
-        ii++;
-    }
-if (!lesson) return;
-if (STATE.hearts <= 0) {
-        kgbPopup("NO HEARTS", "You have no hearts left. The state does not do charity.", "UNDERSTOOD");
-   return;
-    }
-bredQueueLoad().then(function() {
-    showScreen('lesson-screen');
-         fetch("/api/generate-lesson", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                title: lesson.title,
-                subtitle: lesson.subtitle
-            })
-        })
-    .then(function(r) {
-            return r.json();
-        })
-    .then(function(aiData) {
-    if (aiData.error) {
-        console.log("AI lesson failed, using fallback");
-            STATE.currentLesson = lesson;
-        } else {
-            var aiLesson = {
-                id: lesson.id,
-                icon: lesson.icon,
-                title: lesson.title,
-                subtitle: lesson.subtitle,
-                xpReward: lesson.xpReward,
-                wordBank: aiData.wordBank,
-                questionTemplates: aiData.questionTemplates
-                };
-            STATE.currentLesson = aiLesson;
-        }
-            STATE.currentQ = 0;
-            STATE.correctCount = 0;
-            STATE.startTime = new Date().getTime();
-
-        renderQuestion();
-    })
-        .catch(function(err) {
-            console.log("fetch failed, using fallback:", err);
-            STATE.currentLesson = lesson;
-            STATE.currentQ = 0;
-            STATE.correctCount = 0;
-            STATE.startTime = new Date().getTime();
-
-            renderQuestion();
-        });
-    });
-}
+      
 function renderType(q, body, checkBtn) {
     var word = STATE.currentLesson.wordBank[q.wordIndex];
     var prompt = q.direction === "en_to_ru" ? "Translate to Russian" : "Translate to English";
     var text = q.direction === "en_to_ru" ? word.english : word.russian;
     var correct = q.direction === "en_to_ru" ? word.russian : word.english;
     body.innerHTML = '<h2 class="question-prompt">' + prompt + '</h2><div class="question-text">' + text + '</div><input type="text" id="type-input" class="type-input" placeholder="Type your answer..." autocomplete="off"/><p style="font-size:12px;color:#888;margin-top:8px;">hint: ' + correct.length + ' characters</p>';
-    var input = document.getElementById("type-input");
+    var input = document.getElementById("type-input");  ii++;
+    }
+    if (!lesson) return;
+    if (STATE.hearts <= 0) {
+        kgbPopup("NO HEARTS", "You have no hearts left. The state does not do charity.", "UNDERSTOOD");
+        return;
+    }
+    var cacheKey = "lesson_" + id + "_" + STATE.completedLessons.length;
+    bredQueueLoad().then(function() {
+        showScreen('lesson-screen');
+        if (STATE.lessonCache[cacheKey]) {
+            console.log("using cached lesson for", lesson.title);
+            var cachedLesson = STATE.lessonCache[cacheKey];
+            STATE.currentLesson = cachedLesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+            renderQuestion();
+            return;
+        }
+        fetch("/api/generate-lesson", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                title: lesson.title,
+                subtitle: lesson.subtitle,
+                xp: STATE.xp,
+                completedCount: STATE.completedLessons.length,
+                weakWords: STATE.weakWords
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(aiData) {
+            var aiLesson;
+            if (aiData.error) {
+                console.log("AI lesson failed, using fallback");
+                aiLesson = lesson;
+            } else {
+                aiLesson = {
+                    id: lesson.id,
+                    icon: lesson.icon,
+                    title: lesson.title,
+                    subtitle: lesson.subtitle,
+                    xpReward: lesson.xpReward,
+                    wordBank: aiData.wordBank,
+                    questionTemplates: aiData.questionTemplates
+                };
+                STATE.lessonCache[cacheKey] = aiLesson;
+            }
+            STATE.currentLesson = aiLesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+            renderQuestion();
+        })
+        .catch(function(err) {
+            console.log("fetch failed, using fallback:", err);
+            STATE.currentLesson = lesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+            renderQuestion();
+        });
+    });
+}
     input.oninput = function() {
         STATE.selectedOption = input.value.trim();
         if(input.value.trim().length > 0) {
@@ -928,6 +944,10 @@ function renderTranslate(q, body, checkBtn) {
                 if(allOpts[p].classList.contains("selected")) allOpts[p].classList.add("wrong");
                 if(allOpts[p].innerText === correct) allOpts[p].classList.add("correct");
                 p++;
+            var wrongWord = STATE.currentLesson.wordBank[q.wordIndex];
+            if (wrongWord && !STATE.weakWords.includes(wrongWord.english)) {
+                STATE.weakWords.push(wrongWord.english);
+            }
             }
             document.getElementById("feedback-title").innerText = "WRONG.";
             document.getElementById("feedback-text").innerText = "correct answer: " + correct;
