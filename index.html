@@ -58,6 +58,31 @@
         </div>
  
       </section>
+<section class="screen" id="teach-screen">
+    <div class="lesson-header">
+        <button id="teach-quit-btn" style="background-color: var(--black); color: var(--cream); border: 2px solid var(--red); width: 40px; height: 40px; font-size: 16px; cursor: pointer; flex-shrink: 0;">✕</button>
+        <div class="progress-bar">
+            <div id="teach-progress-fill" style="height: 100%; width: 0%; background: repeating-linear-gradient(45deg, var(--red), var(--red) 10px, var(--red-dark) 10px, var(--red-dark) 20px); transition: width 0.4s;"></div>
+        </div>
+    </div>
+    <div id="teach-body"></div>
+    <div class="lesson-footer">
+        <button id="teach-next-btn">UNDERSTOOD</button>
+    </div>
+</section>
+
+<section class="screen" id="revision-screen">
+    <div class="banner" style="margin-bottom: 20px;">
+        <div class="banner-text" style="text-align: center;">
+            <h2>KNOWLEDGE REVIEW</h2>
+            <p>Do not forget what the state has taught you.</p>
+        </div>
+    </div>
+    <div id="revision-grid" class="options"></div>
+    <div class="lesson-footer" style="margin-top: 24px;">
+        <button id="revision-start-btn">PROVE YOUR LOYALTY</button>
+    </div>
+</section>
  
         <section class="screen" id="lesson-screen">
           <div class="lesson-header">

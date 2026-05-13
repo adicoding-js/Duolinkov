@@ -57,7 +57,7 @@ app.post("/api/generate-lesson", function(req, res) {
     };
     var messagesList = [messageOne, messageTwo];
     var bigBodyObject = {
-        model: "x-ai/grok-4.1-fast",
+        model: "google/gemini-3.1-flash-lite",
         messages: messagesList,
         temperature: 0.7
     };
@@ -99,7 +99,7 @@ app.post("/api/generate-lesson", function(req, res) {
                     if (qt.wordIndices[wi2] >= finalJson.wordBank.length) {
                         isValid = false;
                     }
-                    wi2++;
+                  wi2++;
                 }
             }
             qi++;
@@ -117,6 +117,65 @@ app.post("/api/generate-lesson", function(req, res) {
         console.log("AI FAILED:", error);
         res.status(500).json({
             error: "Bureau error. The state never apologizes tho"
+        });
+    });
+});
+
+app.post("/api/teach-lesson", function(req, res) {
+    var wordBank = req.body.wordBank || [];
+    if (wordBank.length === 0) {
+        return res.status(400).json({ error: "wordBank is required" });
+    }
+    var wordsListStr = JSON.stringify(wordBank);
+    var urlToCall = "https://ai.hackclub.com/proxy/v1/chat/completions";
+    var theApiKey = process.env.api;
+    var instructionsForAi = "You are a Soviet language instructor for the ДУОЛИНКОВ app. " +
+    "The user is a beginner learning Russian. " +
+    "For each word in the provided JSON array, generate a 'description' and an 'example' sentence. " +
+    "The description must be 1-2 sentences max, explaining the context/usage with a dry, Soviet, mildly intimidating, or bizarrely bureaucratic tone. No generic mnemonics. " +
+    "The example should be a single sentence demonstrating the word naturally. Do NOT use labels like 'Example:'. " +
+    "You MUST output ONLY raw JSON. No text before or after. No markdown. No backticks. " +
+    "Output strictly a JSON array of objects in this exact format: " +
+    "[ { \"russian\": \"...\", \"english\": \"...\", \"description\": \"...\", \"example\": \"...\" } ]\n" +
+    "Here are the words you must process: " + wordsListStr;
+
+    var messageOne = {
+        role: "system",
+        content: instructionsForAi
+    };
+    var messageTwo = {
+        role: "user",
+        content: "Give me the JSON array now. Raw JSON only, no backticks, no markdown."
+    };
+    var messagesList = [messageOne, messageTwo];
+    var bigBodyObject = {
+        model: "x-ai/grok-4.1-fast",
+        messages: messagesList,
+        temperature: 0.7
+    };
+    var headersObj = {
+        Authorization: "Bearer " + theApiKey,
+        "Content-Type": "application/json"
+    };
+    fetch(urlToCall, {
+        method: "POST",
+        headers: headersObj,
+        body: JSON.stringify(bigBodyObject)
+    })
+    .then(function(apiResponse) {
+        return apiResponse.text();
+    })
+    .then(function(rawText) {
+        var parsedRes = JSON.parse(rawText);
+        var aiContent = parsedRes.choices[0].message.content;
+        var cleanJsonString = aiContent.replace(/```json/g, "").replace(/```/g, "").trim();
+        var finalJson = JSON.parse(cleanJsonString);
+        res.json(finalJson);
+    })
+    .catch(function(error) {
+        console.log("AI TEACH FAILED:", error);
+        res.status(500).json({
+            error: "Bureau error during curriculum generation. Stand by."
         });
     });
 });

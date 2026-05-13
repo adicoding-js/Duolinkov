@@ -1362,3 +1362,145 @@ if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
     };
 }
+function startLesson(id) {
+    var lesson = null;
+    var ii = 0;
+    while (ii < LESSONS.length) {
+        if (LESSONS[ii].id == id) {
+            lesson = LESSONS[ii];
+        }
+        ii++;
+    }
+    if (!lesson) return;
+    if (STATE.hearts <= 0) {
+        kgbPopup("NO HEARTS", "You have no hearts left. The state does not do charity.", "UNDERSTOOD");
+        return;
+    }
+    var cacheKey = "lesson_" + id + "_" + STATE.completedLessons.length;
+    bredQueueLoad().then(function() {
+        showScreen('lesson-screen');
+        if (STATE.lessonCache[cacheKey]) {
+            console.log("using cached lesson for", lesson.title);
+            var cachedLesson = STATE.lessonCache[cacheKey];
+            STATE.currentLesson = cachedLesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+            renderQuestion();
+            return;
+        }
+        fetch("/api/generate-lesson", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                title: lesson.title,
+                subtitle: lesson.subtitle,
+                xp: STATE.xp,
+                completedCount: STATE.completedLessons.length,
+                weakWords: STATE.weakWords
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(aiData) {
+            var aiLesson;
+            if (aiData.error) {
+                console.log("AI lesson failed, using fallback");
+                aiLesson = lesson;
+            } else {
+                aiLesson = {
+                    id: lesson.id,
+                    icon: lesson.icon,
+                    title: lesson.title,
+                    subtitle: lesson.subtitle,
+                    xpReward: lesson.xpReward,
+                    wordBank: aiData.wordBank,
+                    questionTemplates: aiData.questionTemplates
+                };
+                STATE.lessonCache[cacheKey] = aiLesson;
+            }
+            STATE.currentLesson = aiLesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+            fetchTeachData(aiLesson.wordBank);
+        })
+        .catch(function(err) {
+            console.log("fetch failed, using fallback:", err);
+            STATE.currentLesson = lesson;
+            STATE.currentQ = 0;
+            STATE.correctCount = 0;
+            STATE.startTime = new Date().getTime();
+            renderQuestion();
+        });
+    });
+}
+function fetchTeachData(wordBank) {
+    fetch("/api/teach-lesson", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wordBank: wordBank })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(teachData) {
+        if (teachData.error || !Array.isArray(teachData)) {
+            startQuizPhase();
+            return;
+        }
+        STATE.teachData = teachData;
+        STATE.currentTeachIndex = 0;
+        showScreen('teach-screen');
+        renderTeachScreen();
+    })
+    .catch(function(err) {
+        console.log("Teach fetch failed, falling back to questions:", err);
+        startQuizPhase();
+    });
+}
+function renderTeachScreen() {
+    var data = STATE.teachData[STATE.currentTeachIndex];
+    var body = document.getElementById("teach-body");
+    var progress = (STATE.currentTeachIndex / STATE.teachData.length) * 100;
+    document.getElementById("teach-progress-fill").style.width = progress + "%";
+    body.innerHTML = '<div class="teach-word">' + data.russian + '</div>' + '<div class="teach-desc">' + data.description + '</div>' + '<div class="teach-example">' + data.example + '</div>';
+    setTimeout(function() { speakRussian(data.russian); }, 200);
+
+    document.getElementById("teach-next-btn").onclick = function() {
+        STATE.currentTeachIndex++;
+        if (STATE.currentTeachIndex >= STATE.teachData.length) {
+            renderRevisionScreen();
+        } else {
+            renderTeachScreen();
+        }
+    };
+    document.getElementById("teach-quit-btn").onclick = function() {
+        kgbPopup("COWARD DETECTED", "You are abandoning your lesson. The state has noted this.", "BACK TO WORK").then(function() {
+            showScreen("home-screen");
+            renderTree();
+        });
+    };
+}
+function renderRevisionScreen() {
+    showScreen('revision-screen');
+    var grid = document.getElementById("revision-grid");
+    grid.innerHTML = "";
+
+    var i = 0;
+    while (i < STATE.teachData.length) {
+        var data = STATE.teachData[i];
+        var card = document.createElement("div");
+        card.className = "revision-card";
+        card.innerHTML = '<div class="revision-ru">' + data.russian + '</div>' + '<div class="revision-en">' + data.english + '</div>';
+        grid.appendChild(card);
+        i++;
+    }
+    document.getElementById("revision-start-btn").onclick = function() {
+        startQuizPhase();
+    };
+}
+function startQuizPhase() {
+    STATE.currentQ = 0;
+    STATE.correctCount = 0;
+    STATE.startTime = new Date().getTime();
+    showScreen('lesson-screen');
+    renderQuestion();
+}
