@@ -1123,7 +1123,7 @@ function endLsn() {
     document.getElementById("final-accuracy").innerText = a + "%";
     document.getElementById("final-time").innerText = t + "s"; 
     saveState();
-    pushToLeaderBoard();
+    pushToLeaderboard();
     updateStats();
     showScreen("complete-screen");
 }
