@@ -538,6 +538,7 @@ var keyboard = document.createElement("div");
         var correctAnswer = correct.toLowerCase().trim();
         if(userAnswer === correctAnswer) {
             STATE.correctCount++;
+            recAnswer(word.russian, true, "type");
             input.style.borderColor = "#1a6b1a";
             input.style.backgroundColor = "#1a6b1a";
             input.style.color = "#fff";
@@ -546,6 +547,7 @@ var keyboard = document.createElement("div");
         } else {
             STATE.hearts--;
             updateStats();
+            recAnswer(word.russian, false, "type");
             input.style.borderColor = "#ff2222";
             input.style.backgroundColor = "#ff2222";
             input.style.color = "#fff";
@@ -645,6 +647,7 @@ function renderListen(q, body, checkBtn) {
                 if (allOpts[m].innerText === correct) allOpts[m].classList.add("correct");
                 m++;
             }
+            recAnswer(word.russian, true, "listen");
             document.getElementById("feedback-title").innerText = "CORRECT!";
             document.getElementById("feedback-text").innerText = "";
         } else {
@@ -656,6 +659,7 @@ function renderListen(q, body, checkBtn) {
                 if (allOpts[p].innerText === correct) allOpts[p].classList.add("correct");
                 p++;
             }
+            recAnswer(word.russian, false, "listen");
             document.getElementById("feedback-title").innerText = "WRONG.";
             document.getElementById("feedback-text").innerText = "it said: " + word.russian;
         }
@@ -929,6 +933,7 @@ function renderTranslate(q, body, checkBtn) {
         }
         if(STATE.selectedOption === correct) {
             STATE.correctCount++;
+            recAnswer(word.russian, true, "translate");
             var m = 0;
           while(m < allOpts.length) {
                 if(allOpts[m].innerText === correct) allOpts[m].classList.add("correct");
@@ -939,6 +944,7 @@ function renderTranslate(q, body, checkBtn) {
         } else {
             STATE.hearts--;
             updateStats();
+            recAnswer(word.russian, false, "translate");
            var p = 0;
             while(p < allOpts.length) {
                 if(allOpts[p].classList.contains("selected")) allOpts[p].classList.add("wrong");
@@ -1063,6 +1069,14 @@ function tryMatch(checkBtn, pairs) {
             }  j++;
         }
         STATE.matchedPairs.push(STATE.matchSelections.left);
+        var justMatchedEng = STATE.matchSelections.left;
+        var ii2 = 0;
+        while (ii2 < pairs.length) {
+            if (pairs[ii2].english == justMatchedEng) {
+                recAnswer(pairs[ii2].russian, true, "match");
+            }
+            ii2++;
+        }
         STATE.matchSelections.left = null;
         STATE.matchSelections.right = null;
 
@@ -1095,6 +1109,14 @@ function tryMatch(checkBtn, pairs) {
         }, 600);
         STATE.hearts--;
         updateStats();
+        var wrongEng = STATE.matchSelections.left;
+        var ii3 = 0;
+        while (ii3 < pairs.length) {
+            if (pairs[ii3].english == wrongEng) {
+                recAnswer(pairs[ii3].russian, false, "match");
+            }
+            ii3++;
+        }
     }
 }
 }

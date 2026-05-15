@@ -161,3 +161,116 @@ function pullRegistry(userId) {
         });
     });
 }
+function getQualityScore(correct, questionType, consecutiveCorrect) {
+    var score = 0;
+    if (correct) {
+        score = 4;
+        if (questionType === "translate") {
+            if (consecutiveCorrect >= 3) {
+                score = 5;
+            }
+        }
+        if (questionType === "match") {
+            score = 3;
+        }
+        if (questionType === "type") {
+            score = 4;
+        }
+        if (questionType === "listen") {
+            score = 4;
+        }
+    } else {
+        score = 1;
+        if (questionType === "type") {
+           score = 0;
+        }
+        if (questionType === "listen") {
+            var raw = 1 - 0.5;
+            score = Math.floor(raw);
+        }
+        if (questionType === "translate") {
+            score = 1;
+        }
+        if (questionType === "match") {
+            score = 1;
+        }
+    }
+    return score;
+}
+function calcNextInterval(entry, qualityScore) {
+    var newInterval = entry.intervalDays;
+    var newEase = entry.easeFactor;
+    var newConsecutive = entry.consecutiveCorrect;
+
+    if (qualityScore < 3) {
+        newInterval = 1;
+        newConsecutive = 0;
+    } else {
+        if (newInterval === 0) {
+            newInterval = 1;
+        } else if (newInterval === 1) {
+            newInterval = 6;
+        } else {
+            newInterval = Math.round(newInterval * newEase);
+        }
+        newConsecutive = newConsecutive + 1;
+    }
+    var easeChange = 0.1 - (5 - qualityScore) * (0.08 + (5 - qualityScore) * 0.02);
+    newEase = newEase + easeChange;
+    if (newEase < 1.3) {
+        newEase = 1.3;
+    }
+    newEase = Math.round(newEase * 100) / 100;
+    newInterval = Math.round(newInterval);
+    return {
+        intervalDays: newInterval,
+        easeFactor: newEase,
+        consecutiveCorrect: newConsecutive
+    };
+}
+function recAnswer(rus, wasRight, qType) {
+    var w = registryGetWord(rus);
+    if (w == null) {
+        console.log("word not found lol: " + rus);
+        return;
+    }
+
+    var q = getQualityScore(wasRight, qType, w.consecutiveCorrect);
+    var calc = calcNextInterval(w, q);
+
+    w.timesSeenTotal = w.timesSeenTotal + 1;
+
+    if (wasRight == true) {
+        w.timesCorrect = w.timesCorrect + 1;
+        w.consecutiveCorrect = calc.consecutiveCorrect;
+    } else {
+        w.timesWrong = w.timesWrong + 1;
+        w.consecutiveCorrect = 0;
+    }
+
+    w.intervalDays = calc.intervalDays;
+    w.easeFactor = calc.easeFactor;
+
+    w.lastSeenTimestamp = Date.now();
+    w.nextReviewTimestamp = Date.now() + (calc.intervalDays * 86400000);
+
+    if (w.typeStats[qType] == null) {
+        w.typeStats[qType] = {};
+        w.typeStats[qType].seen = 0;
+        w.typeStats[qType].correct = 0;
+        w.typeStats[qType].wrong = 0;
+    }
+    w.typeStats[qType].seen = w.typeStats[qType].seen + 1;
+    if (wasRight == true) {
+        w.typeStats[qType].correct = w.typeStats[qType].correct + 1;
+    } else {
+        w.typeStats[qType].wrong = w.typeStats[qType].wrong + 1;
+    }
+    if (w.consecutiveCorrect >= 5 && w.intervalDays >= 21) {
+        w.isMastered = true;
+        w.masteredAt = Date.now();
+    }
+
+    registryDirty = true;
+    saveRegistry();
+}
