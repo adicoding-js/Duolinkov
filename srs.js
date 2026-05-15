@@ -105,8 +105,16 @@ function loadRegistry() {
         WORD_REGISTRY[key] = entry;
         i++;
     }
-}
-loadRegistry();
+    var allWords = registryGetAll();
+    var gi = 0;
+    while (gi < allWords.length) {
+        checkGhostReentry(allWords[gi]);
+        g++;
+    } if (registryDirty == true) {
+        saveRegistry();
+    }    
+}  loadRegistry();
+
 function pushRegistry(userId) {
     return new Promise(function(resolve) {
         var keys = Object.keys(WORD_REGISTRY);
@@ -273,4 +281,153 @@ function recAnswer(rus, wasRight, qType) {
 
     registryDirty = true;
     saveRegistry();
+}
+function getMemoryStrength(w) {
+    var daysSince = 0;
+    var decay = 0;
+    var strength = 0;
+    var rounded = 0;
+    var neverSeen = false;
+    var overdue = false;
+    var isMastered = false;
+    var masteredBonus = 0;
+    var overduepenalty = 0;
+
+    if (w.timesSeenTotal === 0) {
+        neverSeen = true;
+    }
+    if (neverSeen == true) {
+        return 0;
+    }
+    daysSince = (Date.now() - w.lastSeenTimestamp) / 86400000;
+    decay = w.intervalDays * w.easeFactor;
+
+    if (decay <= 0) {
+        decay = 0.1;
+    }
+    strength = Math.exp(-daysSince / decay);
+
+    if (w.isMastered == true) {
+        isMastered = true;
+    }
+    if (isMastered == true) {
+        masteredBonus = strength * 1.15;
+        strength = masteredBonus;
+    }
+    if (daysSince > w.intervalDays * 2) {
+        overdue = true;
+    }
+    if (overdue == true) {
+        overduepenalty = strength * 0.6;
+        strength = overduepenalty;
+    }
+    if (strength > 1) {
+        strength = 1;
+    }
+    if (strength < 0) {
+        strength = 0;
+    }
+    rounded = Math.round(strength * 100) / 100;
+    return rounded;
+}
+function isDue(w) {
+    if (w.nextReviewTimestamp == null) {
+        return false;
+    }
+    if (Date.now() >= w.nextReviewTimestamp) {
+        return true;
+    }
+    return false;
+}
+
+function getOverdueDays(w) {
+    if (w.nextReviewTimestamp == null) {
+        return 0;
+    }
+    var diff = Date.now() - w.nextReviewTimestamp;
+    var days = diff / 86400000;
+    return days;
+}
+
+function getDueWords() {
+    var all = registryGetAll();
+    var due = [];
+    var i = 0;
+    while (i < all.length) {
+        if (isDue(all[i]) == true) {
+            due.push(all[i]);
+        }
+        i++;
+    }
+    due.sort(function(a, b) {
+        var aDays = getOverdueDays(a);
+        var bDays = getOverdueDays(b);
+        if (bDays > aDays) {
+            return 1;
+        }
+        if (bDays < aDays) {
+            return -1;
+        }
+        return 0;
+    });
+    return due;
+}
+
+function getNewWords(lessonId) {
+    var all = registryGetAll();
+    var newWords = [];
+    var i = 0;
+    while (i < all.length) {
+        if (all[i].timesSeenTotal === 0) {
+            if (lessonId != null) {
+                if (all[i].lessonId == lessonId) {
+                    newWords.push(all[i]);
+                }
+            } else {
+                newWords.push(all[i]);
+            }
+        }
+        i++;
+    } return newWords;
+}
+function getDueCount() {
+    var due = getDueWords();
+    return due.length;
+}
+function checkGhostReentry(w) {
+    if (w.isMastered == false) {
+        return;
+    }
+    if (w.masteredAt == null) {
+        return;
+    }
+    var daysSinceMastered = (Date.now() - w.masteredAt) / 86400000;
+    var isGhost = false;
+    if (daysSinceMastered >= 30) {
+        isGhost = true;
+    }
+    if (isGhost == false) {
+        return;
+    }
+
+    var oldEase = w.easeFactor;
+    var newEase = oldEase - 0.4;
+    if (newEase < 1.3) {
+        newEase = 1.3;
+    }
+    var oldInterval = w.intervalDays;
+    var halfInterval = oldInterval * 0.5;
+    var newInterval = Math.round(halfInterval);
+
+    if (newInterval < 1) {
+        newInterval = 1;
+    }
+    w.isMastered = false;
+    w.masteredAt = null;
+    w.easeFactor = newEase;
+    w.intervalDays = newInterval;
+    w.nextReviewTimestamp = Date.now() + (newInterval * 86400000);
+    console.log("ghost reentry: " + w.russian);
+
+    registryDirty = true;
 }
