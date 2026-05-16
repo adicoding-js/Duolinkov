@@ -109,7 +109,7 @@ function loadRegistry() {
     var gi = 0;
     while (gi < allWords.length) {
         checkGhostReentry(allWords[gi]);
-        g++;
+        gi++;
     } if (registryDirty == true) {
         saveRegistry();
     }    
@@ -386,8 +386,7 @@ function getNewWords(lessonId) {
             } else {
                 newWords.push(all[i]);
             }
-        }
-        i++;
+        } i++;
     } return newWords;
 }
 function getDueCount() {
@@ -409,7 +408,6 @@ function checkGhostReentry(w) {
     if (isGhost == false) {
         return;
     }
-
     var oldEase = w.easeFactor;
     var newEase = oldEase - 0.4;
     if (newEase < 1.3) {
@@ -431,3 +429,283 @@ function checkGhostReentry(w) {
 
     registryDirty = true;
 }
+function getUrgecyScore(w) {
+    var overdue = getOverdueDays(w);
+    var easeScore = 0;
+    var wrongRate = 0;
+    var urgency = 0;
+    var timesTotal = w.timesSeenTotal;
+
+    if (timesTotal > 0) {
+        wrongRate = w.timesWrong / timesTotal;
+    }
+    if (w.easeFactor < 1.5) {
+        easeScore = 3;
+    } else if (w.easeFactor < 2.0) {
+        easeScore = 2;
+    } else if (w.easeFactor < 2.5) {
+        easeScore = 1;
+    } else {
+        easeScore = 0;
+    }
+    urgency = overdue + (wrongRate * 3) + easeScore;
+    return urgency;
+}
+
+function getLessonSlotBudget() {
+    var due = getDueCount();
+    var totalSlots = 6;
+    var reviewSlots = 0;
+    var newSlots = 0;
+    var reviewRatio = 0.65;
+    if (due >= 8) {
+        totalSlots = 8;
+    }
+    if (due >= 12) {
+        totalSlots = 10;
+    }
+    reviewSlots = Math.min(due, Math.round(totalSlots * reviewRatio));
+    newSlots = totalSlots - reviewSlots;
+    var budget = {};
+    budget.totalSlots = totalSlots;
+    budget.reviewSlots = reviewSlots;
+    budget.newSlots = newSlots;
+    return budget;
+}
+
+function pickReviewWords(count) {
+    var due = getDueWords();
+    var picked = [];
+    var i = 0;
+    due.sort(function(a, b) {
+        var aScore = getUrgencyScore(a);
+        var bScore = getUrgencyScore(b);
+        if (bScore > aScore) {
+            return 1;
+        }
+        if (bScore < aScore) {
+            return -1;
+        } return 0;
+    });
+    while (i < due.length && i < count) {
+        picked.push(due[i]);
+        i++;
+    }  return picked;
+}
+function pickNewWords(count, lessonId) {
+    var newWords = getNewWords(lessonId);
+    var picked = [];
+    var i = 0;
+
+    if (newWords.length < count) {
+        var otherNew = getNewWords(null);
+        var j = 0;
+        while (j < otherNew.length) {
+            var alreadyIn = false;
+            var k = 0;
+            while (k < newWords.length) {
+                if (newWords[k].russian == otherNew[j].russian) {
+                    alreadyIn = true;
+                }
+                k++;
+            }
+            if (alreadyIn == false) {
+                newWords.push(otherNew[j]);
+            }  j++;
+        }
+    }
+    newWords.sort(function() {
+        return 0.5 - Math.random();
+    });
+
+    while (i < newWords.length && i < count) {
+        picked.push(newWords[i]);
+        i++;
+    }
+
+    return picked;
+}
+function pickWordsForLesson(lessonId) {
+    var budget = getLessonSlotBudget();
+    var reviewWords = pickReviewWords(budget.reviewSlots);
+    var newWords = pickNewWords(budget.newSlots, lessonId);
+    var allWords = [];
+    var seen = {};
+    var i = 0;
+
+    while (i < reviewWords.length) {
+        if (!seen[reviewWords[i].russian]) {
+            allWords.push(reviewWords[i]);
+            seen[reviewWords[i].russian] = true;
+        }
+        i++;
+    }
+    var j = 0;
+    while (j < newWords.length) {
+        if (!seen[newWords[j].russian]) {
+            allWords.push(newWords[j]);
+            seen[newWords[j].russian] = true;
+        }
+        j++;
+    }
+    var result = {};
+    result.reviewWords = reviewWords;
+    result.newWords = newWords;
+    result.allWords = allWords;
+
+    return result;
+}
+function selectQuestionType(w) {
+    var types = ["translate", "type", "listen"];
+    var worstType = null;
+    var worstAccuracy = 999;
+    var i = 0;
+    if (w.timesSeenTotal < 2) {
+        return "translate";
+    }
+    while (i < types.length) {
+        var t = types[i];
+        var stats = w.typeStats[t];
+        if (stats != null && stats.seen >= 2) {
+            var acc = stats.correct / stats.seen;
+            if (acc < worstAccuracy) {
+                worstAccuracy = acc;
+                worstType = t;
+            }
+        }
+        i++;
+    }
+    if (worstType != null) {
+        return worstType;
+    }
+    var roll = Math.random();
+    var picked = "translate";
+    if (roll < 0.35) {
+        picked = "translate";
+    } else if (roll < 0.60) {
+        picked = "type";
+    } else if (roll < 0.85) {
+        picked = "listen";
+    } else {
+        picked = "translate";
+    } return picked;
+}
+function buildQuestionTemplate(w, wordIndex) {
+    var qType = selectQuestionType(w);
+    var template = {};
+    var direction = "en_to_ru";
+    var ruToEnAcc = 0;
+    var enToRuAcc = 0;
+    var ruStats = w.typeStats["translate"];
+
+    if (ruStats != null && ruStats.seen >= 2) {
+        var totalCorrect = ruStats.correct;
+        var totalSeen = ruStats.seen;
+        enToRuAcc = totalCorrect / totalSeen;
+        ruToEnAcc = totalCorrect / totalSeen;
+    }
+    if (ruToEnAcc > enToRuAcc) {
+        direction = "en_to_ru";
+    } else if (enToRuAcc > ruToEnAcc) {
+        direction = "ru_to_en";
+    } else {
+        if (Math.random() > 0.5) {
+            direction = "ru_to_en";
+        } else {
+            direction = "en_to_ru";
+        }
+    }
+    template.type = qType;
+    template.wordIndex = wordIndex;
+    if (qType === "translate" || qType === "type") {
+        template.direction = direction;
+    }
+    if (qType === "listen") {
+        template.wordIndex = wordIndex;
+    } return template;
+}
+function buildMatchQuestion(wordGroup, startIndex) {
+    var template = {};
+    var indices = [];
+    var i = 0;
+    while (i < wordGroup.length) {
+        indices.push(startIndex + i);
+        i++;
+    }
+    template.type = "match";
+    template.wordIndices = indices;
+    return template;
+}
+
+function sequenceQuestions(templates) {
+    var sequenced = [];
+    var remaining = [];
+    var i = 0;
+    while (i < templates.length) {
+        remaining.push(templates[i]);
+        i++;
+    }
+    var typeCounts = {};
+    typeCounts.translate = 0;
+    typeCounts.type = 0;
+    typeCounts.listen = 0;
+    typeCounts.match = 0;
+    var j = 0;
+    while (j < templates.length) {
+        var t = templates[j].type;
+        if (typeCounts[t] == null) {
+            typeCounts[t] = 0;
+        }
+        typeCounts[t] = typeCounts[t] + 1;
+        j++;
+    }
+    var maxAttempts = remaining.length * remaining.length;
+    var attempts = 0;
+    var lastType = null;
+    var consecutiveSame = 0;
+
+    while (remaining.length > 0 && attempts < maxAttempts) {
+        attempts++;
+        var bestPick = null;
+        var bestPickIndex = -1;
+        var k = 0;
+
+        while (k < remaining.length) {
+            var candidate = remaining[k];
+            var isSameAsLast = candidate.type == lastType;
+            var isEmpty = sequenced.length === 0;
+            if (isEmpty == true) {
+                bestPick = candidate;
+                bestPickIndex = k;
+                break;
+            }
+            if (isSameAsLast == false) {
+                bestPick = candidate;
+                bestPickIndex = k;
+                break;
+            }
+            if (consecutiveSame < 2 && bestPick == null) {
+                bestPick = candidate;
+                bestPickIndex = k;
+            }
+            k++;
+        }
+        if (bestPick == null) {
+            bestPick = remaining[0];
+            bestPickIndex = 0;
+        }
+        if (bestPick.type == lastType) {
+            consecutiveSame = consecutiveSame + 1;
+        } else {
+            consecutiveSame = 0;
+        }
+        lastType = bestPick.type;
+        sequenced.push(bestPick);
+        remaining.splice(bestPickIndex, 1);
+    }
+    var leftover = 0;
+    while (leftover < remaining.length) {
+        sequenced.push(remaining[leftover]);
+        leftover++;
+    }
+    return sequenced
