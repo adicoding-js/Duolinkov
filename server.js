@@ -179,7 +179,106 @@ app.post("/api/teach-lesson", function(req, res) {
         });
     });
 });
+app.post("/api/review-session", function(req, res) {
+    var dueWords = req.body.dueWords || [];
+    var newWords = req.body.newWords || [];
+    var lessonTitle = req.body.lessonTitle || "Review";
+    var lessonSubtitle = req.body.lessonSubtitle || "words due for review";
+    var totalSlots = req.body.totalSlots || 6;
+    var difficultyTier = req.body.difficultyTier || "beginner";
+    if (totalSlots < 6) {
+        totalSlots = 6;
+    }
+    if (totalSlots > 10) {
+        totalSlots = 10;
+    }
+    if (dueWords.length === 0 && newWords.length === 0) {
+        res.status(400).json({ error: "no words provided, what do you want me to do" });
+        return;
+    }
+    var combinedWordBank = [];
+    var seen = {};
+    var i = 0;
 
+    while (i < dueWords.length) {
+        var w = dueWords[i];
+        if (w.russian && w.english && !seen[w.russian]) {
+            combinedWordBank.push({ russian: w.russian, english: w.english });
+            seen[w.russian] = true;
+        }
+        i++;
+    }
+    var j = 0;
+    while (j < newWords.length) {
+        var nw = newWords[j];
+        if (nw.russian && nw.english && !seen[nw.russian]) {
+            combinedWordBank.push({ russian: nw.russian, english: nw.english });
+            seen[nw.russian] = true;
+        }
+        j++;
+    }
+    if (combinedWordBank.length < 2) {
+        res.status(400).json({ error: "not enough valid words to build a session" });
+        return;
+    }
+    var wordListStr = JSON.stringify(combinedWordBank);
+    var urlToCall = "https://ai.hackclub.com/proxy/v1/chat/completions";
+    var theApiKey = process.env.api;
+    var difficultyNote = "";
+    if (difficultyTier === "intermediate") {
+        difficultyNote = "Use moderately challenging distractors for wrong options. ";
+    }
+    if (difficultyTier === "advanced") {
+        difficultyNote = "Use very similar-looking or similar-sounding words as wrong options to make it harder. ";
+    }
+    if (difficultyTier === "expert") {
+        difficultyNote = "Use extremely deceptive distractors. Wrong options should be plausible translations. Require exact spelling in type questions. ";
+    }
+    var instructions = "You are a Soviet language instructor for the ДУОЛИНКОВ app. " +
+    "Generate questions ONLY using the words provided. Do not invent new vocabulary. " +
+    "The difficulty tier is: " + difficultyTier + ". " +
+    difficultyNote +
+    "You MUST output ONLY raw JSON. No text before or after. No markdown. No backticks. " +
+    "The JSON structure must be exactly: " +
+    "{ \"wordBank\": [ { \"russian\": \"...\", \"english\": \"...\" } ], " +
+    "\"questionTemplates\": [ { \"type\": \"translate\", \"direction\": \"en_to_ru\", \"wordIndex\": 0 } ] }. " +
+    "wordBank must contain exactly these words in this order: " + wordListStr + ". " +
+    "Include exactly " + totalSlots + " questions in questionTemplates. " +
+    "Question types allowed: translate (needs direction: en_to_ru or ru_to_en, and wordIndex), match (needs wordIndices array of exactly 4 numbers), type (needs direction and wordIndex), listen (needs wordIndex). " +
+    "Make sure wordIndex values are valid indexes into the wordBank array. " +
+    "Output ONLY the JSON object. Nothing else.";
+    var msgs = [
+        { role: "system", content: instructions },
+        { role: "user", content: "Give me the JSON now. Raw JSON only." }
+    ];
+    var body = {
+        model: "google/gemini-3.1-flash-lite",
+        messages: msgs,
+        temperature: 0.5
+    };
+    var headers = {
+        Authorization: "Bearer " + theApiKey,
+        "Content-Type": "application/json"
+    };
+    fetch(urlToCall, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(body)
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(raw) {
+        var parsed = JSON.parse(raw);
+        var content = parsed.choices[0].message.content;
+        var clean = content.replace(/```json/g, "").replace(/```/g, "").trim();
+        var finalJson = JSON.parse(clean);
+        res.json(finalJson);
+    })
+    .catch(function(err) {
+        console.log("review-session AI failed:", err);
+        res.status(500).json({ error: "review session failed, use fallback" });
+    });
+});
+ 
 var port = process.env.PORT || 3000;
 app.listen(port, function() {
     console.log("ДУОЛИНКОВ SERVER RUNNING ON PORT " + port);
