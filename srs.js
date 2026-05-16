@@ -708,4 +708,5 @@ function sequenceQuestions(templates) {
         sequenced.push(remaining[leftover]);
         leftover++;
     }
-    return sequenced
+    return sequenced;
+}
