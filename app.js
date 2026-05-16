@@ -1429,15 +1429,16 @@ function startLesson(id) {
                 console.log("AI lesson failed, using fallback");
                 aiLesson = lesson;
             } else {
-                aiLesson = {
-                    id: lesson.id,
-                    icon: lesson.icon,
-                    title: lesson.title,
-                    subtitle: lesson.subtitle,
-                    xpReward: lesson.xpReward,
-                    wordBank: aiData.wordBank,
-                    questionTemplates: aiData.questionTemplates
-                };
+                var dynamic = buildDynamicLesson(lesson.id, aiData.wordBank);
+                    aiLesson = {
+                        id: lesson.id,
+                        icon: lesson.icon,
+                        title: lesson.title,
+                        subtitle: lesson.subtitle,
+                        xpReward: lesson.xpReward,
+                        wordBank: dynamic.wordBank,
+                        questionTemplates: dynamic.questionTemplates
+                    };
                 STATE.lessonCache[cacheKey] = aiLesson;
             }
             STATE.currentLesson = aiLesson;

@@ -707,6 +707,72 @@ function sequenceQuestions(templates) {
     while (leftover < remaining.length) {
         sequenced.push(remaining[leftover]);
         leftover++;
+    } return sequenced;
+}
+function buildDynamicLesson(lessonId, wordBank) {
+    var i = 0;
+    while (i < wordBank.length) {
+        registryAddWord(wordBank[i].russian, wordBank[i].english, lessonId);
+        i++;
     }
-    return sequenced;
+    var picked = pickWordsForLesson(lessonId);
+    var allWords = picked.allWords;
+    if (allWords.length < 4) {
+        var j = 0;
+        while (j < wordBank.length) {
+            var alreadyIn = false;
+            var k = 0;
+            while (k < allWords.length) {
+                if (allWords[k].russian == wordBank[j].russian) {
+                    alreadyIn = true;
+                }
+                k++;
+            }
+            if (alreadyIn == false) {
+                allWords.push(wordBank[j]);
+            } j++;
+        }
+    }
+    var templates = [];
+    var matchGroupStart = -1;
+    var matchGroupCount = 0;
+    var m = 0;
+    while (m < allWords.length) {
+        var w = allWords[m];
+        var tmpl = buildQuestionTemplate(w, m);
+        templates.push(tmpl);
+
+        if (matchGroupCount < 4) {
+            matchGroupCount++;
+            if (matchGroupCount === 1) {
+                matchGroupStart = m;
+            }
+        } m++;
+    }
+    if (matchGroupCount >= 4) {
+        var matchGroup = [];
+        var mg = matchGroupStart;
+        while (mg < matchGroupStart + 4) {
+            matchGroup.push(allWords[mg]);
+            mg++;
+        }
+        var matchTemplate = buildMatchQuestion(matchGroup, matchGroupStart);
+        templates.push(matchTemplate);
+    }
+
+    var sequenced = sequenceQuestions(templates);
+    var finalWordBank = [];
+    var fw = 0;
+    while (fw < allWords.length) {
+        finalWordBank.push({
+            russian: allWords[fw].russian,
+            english: allWords[fw].english
+        });
+        fw++;
+    }
+
+    var result = {};
+    result.wordBank = finalWordBank;
+    result.questionTemplates = sequenced;
+    return result;
 }
