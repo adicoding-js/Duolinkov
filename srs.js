@@ -429,7 +429,7 @@ function checkGhostReentry(w) {
 
     registryDirty = true;
 }
-function getUrgecyScore(w) {
+function getUrgencyScore(w) {
     var overdue = getOverdueDays(w);
     var easeScore = 0;
     var wrongRate = 0;

@@ -7,6 +7,145 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("."));
 
+function validateQuestionSet(wordBank, questionTemplates) {
+    var result = {};
+    result.ok = true;
+    result.reason = "";
+
+    if (!wordBank || !Array.isArray(wordBank)) {
+        result.ok = false;
+        result.reason = "wordBank missing or not array";
+        return result;
+    }
+    if (!questionTemplates || !Array.isArray(questionTemplates)) {
+        result.ok = false;
+        result.reason = "questionTemplates missing or not array";
+        return result;
+    }
+    if (wordBank.length === 0) {
+        result.ok = false;
+        result.reason = "wordBank is empty";
+        return result;
+    }
+    if (questionTemplates.length === 0) {
+        result.ok = false;
+        result.reason = "questionTemplates is empty";
+        return result;
+    }
+
+    var cyrillicRegex = /[\u0400-\u04FF]/;
+    var wi = 0;
+    while (wi < wordBank.length) {
+        var w = wordBank[wi];
+        if (!w.russian || !w.english) {
+            result.ok = false;
+            result.reason = "wordBank entry missing russian or english at index " + wi;
+            return result;
+        }
+        if (!cyrillicRegex.test(w.russian)) {
+            result.ok = false;
+            result.reason = "wordBank entry at index " + wi + " has no cyrillic in russian field";
+            return result;
+        }
+        if (typeof w.english !== "string" || w.english.trim().length === 0) {
+            result.ok = false;
+            result.reason = "wordBank entry at index " + wi + " has empty english";
+            return result;
+        }
+        wi++;
+    }
+
+    var allowedTypes = ["translate", "match", "type", "listen"];
+    var allowedDirections = ["en_to_ru", "ru_to_en"];
+    var qi = 0;
+    while (qi < questionTemplates.length) {
+        var qt = questionTemplates[qi];
+        if (!qt.type) {
+            result.ok = false;
+            result.reason = "question at index " + qi + " missing type";
+            return result;
+        }
+        var typeIsAllowed = false;
+        var ti = 0;
+        while (ti < allowedTypes.length) {
+            if (allowedTypes[ti] === qt.type) {
+                typeIsAllowed = true;
+            }
+            ti++;
+        }
+        if (!typeIsAllowed) {
+            result.ok = false;
+            result.reason = "question at index " + qi + " has unknown type: " + qt.type;
+            return result;
+        }
+        if (qt.type === "translate" || qt.type === "type") {
+            if (qt.wordIndex === undefined || qt.wordIndex === null) {
+                result.ok = false;
+                result.reason = "question at index " + qi + " missing wordIndex";
+                return result;
+            }
+            if (qt.wordIndex < 0 || qt.wordIndex >= wordBank.length) {
+                result.ok = false;
+                result.reason = "question at index " + qi + " wordIndex out of range: " + qt.wordIndex;
+                return result;
+            }
+            if (!qt.direction) {
+                result.ok = false;
+                result.reason = "question at index " + qi + " missing direction";
+                return result;
+            }
+            var dirAllowed = false;
+            var di = 0;
+            while (di < allowedDirections.length) {
+                if (allowedDirections[di] === qt.direction) {
+                    dirAllowed = true;
+                }
+                di++;
+            }
+            if (!dirAllowed) {
+                result.ok = false;
+                result.reason = "question at index " + qi + " bad direction: " + qt.direction;
+                return result;
+            }
+        }
+        if (qt.type === "listen") {
+            if (qt.wordIndex === undefined || qt.wordIndex === null) {
+                result.ok = false;
+                result.reason = "listen question at index " + qi + " missing wordIndex";
+                return result;
+            }
+            if (qt.wordIndex < 0 || qt.wordIndex >= wordBank.length) {
+                result.ok = false;
+                result.reason = "listen question at index " + qi + " wordIndex out of range";
+                return result;
+            }
+        }
+        if (qt.type === "match") {
+            if (!qt.wordIndices || !Array.isArray(qt.wordIndices)) {
+                result.ok = false;
+                result.reason = "match question at index " + qi + " missing wordIndices array";
+                return result;
+            }
+            if (qt.wordIndices.length < 2) {
+                result.ok = false;
+                result.reason = "match question at index " + qi + " needs at least 2 pairs";
+                return result;
+            }
+            var mi = 0;
+            while (mi < qt.wordIndices.length) {
+                if (qt.wordIndices[mi] < 0 || qt.wordIndices[mi] >= wordBank.length) {
+                    result.ok = false;
+                    result.reason = "match question at index " + qi + " has out of range wordIndex at position " + mi;
+                    return result;
+                }
+                mi++;
+            }
+        }
+        qi++;
+    }
+    return result;
+}
+
 app.post("/api/generate-lesson", function(req, res) {
     var lessonTitleString = req.body.title;
     var lessonSubtitleString = req.body.subtitle;
@@ -78,39 +217,12 @@ app.post("/api/generate-lesson", function(req, res) {
         var aiContent = parsedRes.choices[0].message.content;
         var cleanJsonString = aiContent.replace(/```json/g, "").replace(/```/g, "").trim();
         var finalJson = JSON.parse(cleanJsonString);
-        var isValid = true;
-        var cyrillicRegex = /[\u0400-\u04FF]/;
-        var vi = 0;
-        while (vi < finalJson.wordBank.length) {
-            if (!cyrillicRegex.test(finalJson.wordBank[vi].russian)) {
-                isValid = false;
+        var validation = validateQuestionSet(finalJson.wordBank, finalJson.questionTemplates);
+        if (!validation.ok) {
+        console.log("validateQuestionSet failed:", validation.reason);
+        res.status(500).json({ error: "invalid lesson data from AI" });
+        return;
             }
-            vi++;
-        }
-        var qi = 0;
-        while (qi < finalJson.questionTemplates.length) {
-            var qt = finalJson.questionTemplates[qi];
-            if (qt.wordIndex !== undefined && qt.wordIndex >= finalJson.wordBank.length) {
-                isValid = false;
-            }
-            if (qt.wordIndices !== undefined) {
-                var wi2 = 0;
-                while (wi2 < qt.wordIndices.length) {
-                    if (qt.wordIndices[wi2] >= finalJson.wordBank.length) {
-                        isValid = false;
-                    }
-                  wi2++;
-                }
-            }
-            qi++;
-        }
-        if (!isValid) {
-            console.log("AI returned invalid lesson data, rejecting");
-            res.status(500).json({
-                error: "invalid lesson data from AI"
-            });
-            return;
-        }
         res.json(finalJson);
     })
     .catch(function(error) {
