@@ -1270,6 +1270,7 @@ function bootAuth() {
         if (session != null) {
             STATE.supabaseUser = session.user;
             loadState();
+            ingestAllStaticLessons();
             updateStats();
             showScreen('home-screen');
             initHome();
@@ -1376,7 +1377,20 @@ document.getElementById("auth-login-btn").onclick = function() {
         hideAuthModal();
     });
 };
-
+function ingestAllStaticLessons() {
+    var i = 0;
+    while (i < LESSONS.length) {
+        var lesson = LESSONS[i];
+        var wi = 0;
+        while (wi < lesson.wordBank.length) {
+            var word = lesson.wordBank[wi];
+            registryAddWord(word.russian, word.english, lesson.id);
+            wi++;
+        }
+        i++;
+    }
+    console.log("ingestAllStaticLessons done, registry size: " + registrySize());
+}
 bootAuth();
 
 if (window.speechSynthesis) {
@@ -1458,6 +1472,41 @@ function startLesson(id) {
     });
 }
 function fetchTeachData(wordBank) {
+    var dueWords = [];
+    var allSrsWords = registryGetAll();
+    var di = 0;
+    while (di < allSrsWords.length) {
+        if (isDue(allSrsWords[di]) == true) {
+            dueWords.push({ russian: allSrsWords[di].russian, english: allSrsWords[di].english });
+        }
+        di++;
+    }
+    if (dueWords.length > 5) {
+        dueWords = dueWords.slice(0, 5);
+    }
+    fetch("/api/review-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wordBank: wordBank, reviewWords: dueWords })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(reviewData) {
+        if (reviewData.error) {
+            console.log("review-session failed, falling back to teach-lesson");
+            fetchTeachDataFallback(wordBank);
+            return;
+        }
+        STATE.currentLesson.wordBank = reviewData.wordBank;
+        STATE.currentLesson.questionTemplates = reviewData.questionTemplates;
+        fetchTeachDataFallback(wordBank);
+    })
+    .catch(function(err) {
+        console.log("review-session fetch exploded:", err);
+        fetchTeachDataFallback(wordBank);
+    });
+}
+
+function fetchTeachDataFallback(wordBank) {
     fetch("/api/teach-lesson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1475,7 +1524,7 @@ function fetchTeachData(wordBank) {
         renderTeachScreen();
     })
     .catch(function(err) {
-        console.log("Teach fetch failed, falling back to questions:", err);
+        console.log("teach-lesson fetch failed:", err);
         startQuizPhase();
     });
 }

@@ -261,7 +261,7 @@ app.post("/api/teach-lesson", function(req, res) {
     };
     var messagesList = [messageOne, messageTwo];
     var bigBodyObject = {
-        model: "x-ai/grok-4.1-fast",
+        model: "google/gemini-3.1-flash-lite",
         messages: messagesList,
         temperature: 0.7
     };
@@ -292,105 +292,69 @@ app.post("/api/teach-lesson", function(req, res) {
     });
 });
 app.post("/api/review-session", function(req, res) {
-    var dueWords = req.body.dueWords || [];
-    var newWords = req.body.newWords || [];
-    var lessonTitle = req.body.lessonTitle || "Review";
-    var lessonSubtitle = req.body.lessonSubtitle || "words due for review";
-    var totalSlots = req.body.totalSlots || 6;
-    var difficultyTier = req.body.difficultyTier || "beginner";
-    if (totalSlots < 6) {
-        totalSlots = 6;
-    }
-    if (totalSlots > 10) {
-        totalSlots = 10;
-    }
-    if (dueWords.length === 0 && newWords.length === 0) {
-        res.status(400).json({ error: "no words provided, what do you want me to do" });
-        return;
-    }
-    var combinedWordBank = [];
+    var wordBank = req.body.wordBank || [];
+    var reviewWords = req.body.reviewWords || [];
+    var allWords = [];
     var seen = {};
-    var i = 0;
-
-    while (i < dueWords.length) {
-        var w = dueWords[i];
-        if (w.russian && w.english && !seen[w.russian]) {
-            combinedWordBank.push({ russian: w.russian, english: w.english });
-            seen[w.russian] = true;
+    var ri = 0;
+    while (ri < reviewWords.length) {
+        var rw = reviewWords[ri];
+        if (rw.russian && rw.english && !seen[rw.russian]) {
+            allWords.push({ russian: rw.russian, english: rw.english });
+            seen[rw.russian] = true;
         }
-        i++;
+        ri++;
     }
-    var j = 0;
-    while (j < newWords.length) {
-        var nw = newWords[j];
-        if (nw.russian && nw.english && !seen[nw.russian]) {
-            combinedWordBank.push({ russian: nw.russian, english: nw.english });
-            seen[nw.russian] = true;
+    var wi = 0;
+    while (wi < wordBank.length) {
+        var ww = wordBank[wi];
+        if (ww.russian && ww.english && !seen[ww.russian]) {
+            allWords.push({ russian: ww.russian, english: ww.english });
+            seen[ww.russian] = true;
         }
-        j++;
+        wi++;
     }
-    if (combinedWordBank.length < 2) {
-        res.status(400).json({ error: "not enough valid words to build a session" });
+    if (allWords.length === 0) {
+        res.status(400).json({ error: "no words to build session from" });
         return;
     }
-    var wordListStr = JSON.stringify(combinedWordBank);
-    var urlToCall = "https://ai.hackclub.com/proxy/v1/chat/completions";
-    var theApiKey = process.env.api;
-    var difficultyNote = "";
-    if (difficultyTier === "intermediate") {
-        difficultyNote = "Use moderately challenging distractors for wrong options. ";
+    var questionTemplates = [];
+    var allowedTypes = ["translate", "type", "listen", "translate"];
+    var qi = 0;
+    while (qi < allWords.length) {
+        var typeIndex = qi % 4;
+        var qType = allowedTypes[typeIndex];
+        var template = {};
+        template.type = qType;
+        template.wordIndex = qi;
+        if (qType === "translate" || qType === "type") {
+            if (qi % 2 === 0) {
+                template.direction = "en_to_ru";
+            } else {
+                template.direction = "ru_to_en";
+            }
+        }
+        questionTemplates.push(template);
+        qi++;
     }
-    if (difficultyTier === "advanced") {
-        difficultyNote = "Use very similar-looking or similar-sounding words as wrong options to make it harder. ";
+    if (allWords.length >= 4) {
+        var matchTemplate = {};
+        matchTemplate.type = "match";
+        matchTemplate.wordIndices = [0, 1, 2, 3];
+        questionTemplates.splice(2, 0, matchTemplate);
     }
-    if (difficultyTier === "expert") {
-        difficultyNote = "Use extremely deceptive distractors. Wrong options should be plausible translations. Require exact spelling in type questions. ";
+    var validation = validateQuestionSet(allWords, questionTemplates);
+    if (!validation.ok) {
+        console.log("review-session validateQuestionSet failed:", validation.reason);
+        res.status(500).json({ error: "review session build failed: " + validation.reason });
+        return;
     }
-    var instructions = "You are a Soviet language instructor for the ДУОЛИНКОВ app. " +
-    "Generate questions ONLY using the words provided. Do not invent new vocabulary. " +
-    "The difficulty tier is: " + difficultyTier + ". " +
-    difficultyNote +
-    "You MUST output ONLY raw JSON. No text before or after. No markdown. No backticks. " +
-    "The JSON structure must be exactly: " +
-    "{ \"wordBank\": [ { \"russian\": \"...\", \"english\": \"...\" } ], " +
-    "\"questionTemplates\": [ { \"type\": \"translate\", \"direction\": \"en_to_ru\", \"wordIndex\": 0 } ] }. " +
-    "wordBank must contain exactly these words in this order: " + wordListStr + ". " +
-    "Include exactly " + totalSlots + " questions in questionTemplates. " +
-    "Question types allowed: translate (needs direction: en_to_ru or ru_to_en, and wordIndex), match (needs wordIndices array of exactly 4 numbers), type (needs direction and wordIndex), listen (needs wordIndex). " +
-    "Make sure wordIndex values are valid indexes into the wordBank array. " +
-    "Output ONLY the JSON object. Nothing else.";
-    var msgs = [
-        { role: "system", content: instructions },
-        { role: "user", content: "Give me the JSON now. Raw JSON only." }
-    ];
-    var body = {
-        model: "google/gemini-3.1-flash-lite",
-        messages: msgs,
-        temperature: 0.5
-    };
-    var headers = {
-        Authorization: "Bearer " + theApiKey,
-        "Content-Type": "application/json"
-    };
-    fetch(urlToCall, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(body)
-    })
-    .then(function(r) { return r.text(); })
-    .then(function(raw) {
-        var parsed = JSON.parse(raw);
-        var content = parsed.choices[0].message.content;
-        var clean = content.replace(/```json/g, "").replace(/```/g, "").trim();
-        var finalJson = JSON.parse(clean);
-        res.json(finalJson);
-    })
-    .catch(function(err) {
-        console.log("review-session AI failed:", err);
-        res.status(500).json({ error: "review session failed, use fallback" });
+    res.json({
+        wordBank: allWords,
+        questionTemplates: questionTemplates
     });
 });
- 
+
 var port = process.env.PORT || 3000;
 app.listen(port, function() {
     console.log("ДУОЛИНКОВ SERVER RUNNING ON PORT " + port);
