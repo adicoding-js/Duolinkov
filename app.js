@@ -1513,7 +1513,8 @@ function startLesson(id) {
                 subtitle: lesson.subtitle,
                 xp: STATE.xp,
                 completedCount: STATE.completedLessons.length,
-                weakWords: STATE.weakWords
+                weakWords: STATE.weakWords, 
+                difficultyTier: evaluateDifficultyShift()
             })
         })
         .then(function(r) { return r.json(); })
@@ -1568,7 +1569,7 @@ function fetchTeachData(wordBank) {
     fetch("/api/review-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wordBank: wordBank, reviewWords: dueWords })
+        body: JSON.stringify({ wordBank: wordBank, reviewWords: dueWords, difficultyTier: STATE.difficultyLevel || "beginner"})
     })
     .then(function(r) { return r.json(); })
     .then(function(reviewData) {

@@ -152,13 +152,7 @@ app.post("/api/generate-lesson", function(req, res) {
     var userXp = req.body.xp || 0;
     var completedCount = req.body.completedCount || 0;
     var weakWords = req.body.weakWords || [];
-    var difficultyLevel = "beginner";
-    if (completedCount >= 2 && userXp >= 50) {
-        difficultyLevel = "intermediate";
-    }
-    if (completedCount >= 4 && userXp >= 150) {
-        difficultyLevel = "advanced";
-    }
+    var difficultyLevel = req.body.difficultyTier || "beginner";
     var questionCount = 6;
     if (difficultyLevel === "intermediate") {
         questionCount = 7;
@@ -320,6 +314,12 @@ app.post("/api/review-session", function(req, res) {
     }
     var questionTemplates = [];
     var allowedTypes = ["translate", "type", "listen", "translate"];
+    var difficultyTier = req.body.difficultyTier || "beginner";
+    if(difficultyTier === "intermediate") {
+        allowedTypes = ["translate", "type", "listen", "translate"];
+    } else if( difficultyTier === "advanced") {
+        allowedTypes = ["translate", "type", "listen", "translate"];
+    }
     var qi = 0;
     while (qi < allWords.length) {
         var typeIndex = qi % 4;
