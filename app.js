@@ -1271,6 +1271,7 @@ function bootAuth() {
             STATE.supabaseUser = session.user;
             loadState();
             ingestAllStaticLessons();
+            registryDedupe();
             updateStats();
             showScreen('home-screen');
             initHome();
@@ -1391,6 +1392,20 @@ function ingestAllStaticLessons() {
     }
     console.log("ingestAllStaticLessons done, registry size: " + registrySize());
 }
+function ingestWordBank(wordBank, lessonId) {
+    if (!wordBank || !Array.isArray(wordBank)) {
+        return;
+    }
+    var i = 0;
+    while (i < wordBank.length) {
+        var word = wordBank[i];
+        if (word.russian && word.english) {
+            registryAddWord(word.russian, word.english, lessonId);
+        }
+        i++;
+    }
+    console.log("ingestWordBank done for lesson " + lessonId + ", registry now: " + registrySize());
+}
 bootAuth();
 
 if (window.speechSynthesis) {
@@ -1454,6 +1469,7 @@ function startLesson(id) {
                         questionTemplates: dynamic.questionTemplates
                     };
                 STATE.lessonCache[cacheKey] = aiLesson;
+                ingestWordBank(aiData.wordBank, lesson.id);
             }
             STATE.currentLesson = aiLesson;
             STATE.currentQ = 0;

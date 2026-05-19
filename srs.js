@@ -62,6 +62,70 @@ function registryGetAll() {
 function registrySize() {
     return Object.keys(WORD_REGISTRY).length;
 }
+function registryNormalize(entry) {
+    var normalized = {};
+    normalized.russian = entry.russian.trim();
+    normalized.english = entry.english.trim().toLowerCase();
+    normalized.lessonId = entry.lessonId;
+    normalized.timesSeenTotal = entry.timesSeenTotal;
+    normalized.timesCorrect = entry.timesCorrect;
+    normalized.timesWrong = entry.timesWrong;
+    normalized.lastSeenTimestamp = entry.lastSeenTimestamp;
+    normalized.nextReviewTimestamp = entry.nextReviewTimestamp;
+    normalized.intervalDays = entry.intervalDays;
+    normalized.easeFactor = entry.easeFactor;
+    normalized.consecutiveCorrect = entry.consecutiveCorrect;
+    normalized.isMastered = entry.isMastered;
+    normalized.masteredAt = entry.masteredAt;
+    normalized.typeStats = entry.typeStats;
+    return normalized;
+}
+
+function registryDedupe() {
+    var keys = Object.keys(WORD_REGISTRY);
+    var seen = {};
+    var removed = 0;
+    var i = 0;
+    while (i < keys.length) {
+        var key = keys[i];
+        var entry = WORD_REGISTRY[key];
+        var normalizedKey = entry.russian.trim();
+    if (seen[normalizedKey] && seen[normalizedKey] !== key) {
+        var existing = WORD_REGISTRY[seen[normalizedKey]];
+        existing.timesSeenTotal = existing.timesSeenTotal + entry.timesSeenTotal;
+        existing.timesCorrect = existing.timesCorrect + entry.timesCorrect;
+        existing.timesWrong = existing.timesWrong + entry.timesWrong;
+        if (entry.lastSeenTimestamp != null) {
+            if (existing.lastSeenTimestamp == null || entry.lastSeenTimestamp > existing.lastSeenTimestamp) {
+                existing.lastSeenTimestamp = entry.lastSeenTimestamp;
+            }
+        }
+        if (entry.nextReviewTimestamp != null) {
+            if (existing.nextReviewTimestamp == null || entry.nextReviewTimestamp < existing.nextReviewTimestamp) {
+                existing.nextReviewTimestamp = entry.nextReviewTimestamp;
+            }
+        }
+        if (entry.intervalDays > existing.intervalDays) {
+            existing.intervalDays = entry.intervalDays;
+        }
+        if (entry.easeFactor < existing.easeFactor) {
+            existing.easeFactor = entry.easeFactor;
+        }
+        if (entry.consecutiveCorrect > existing.consecutiveCorrect) {
+            existing.consecutiveCorrect = entry.consecutiveCorrect;
+        }
+        delete WORD_REGISTRY[key];
+        removed++;
+    } else {
+        seen[normalizedKey] = key;
+    }
+    i++;
+    }
+    if (removed > 0) {
+        registryDirty = true;
+        console.log("registryDedupe removed " + removed + " dupes");
+    }
+}
 var registryDirty = false;
 
 function registryMigrate(entry) {
