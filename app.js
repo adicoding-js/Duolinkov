@@ -1263,6 +1263,71 @@ document.getElementById("retry-btn").onclick = function() {
     initHome();
     showScreen("home-screen");
     };
+function analyzeLessonPerformance() {
+    var totalSeen = 0;
+    var totalCorrect = 0;
+    var totalWrong = 0;
+    var weakWords = [];
+    var strongWords = [];
+    var allWords = registryGetAll();
+    var i = 0;
+    while (i < allWords.length) {
+        var w = allWords[i];
+        if (w.timesSeenTotal === 0) {
+            i++;
+            continue;
+        }
+        totalSeen = totalSeen + w.timesSeenTotal;
+        totalCorrect = totalCorrect + w.timesCorrect;
+        totalWrong = totalWrong + w.timesWrong;
+        var acc = w.timesCorrect / w.timesSeenTotal;
+        if (acc < 0.6 && w.timesSeenTotal >= 3) {
+             weakWords.push({ russian: w.russian, english: w.english, acc: acc });
+        }
+        if (acc >= 0.9 && w.timesSeenTotal >= 5) {
+            strongWords.push({ russian: w.russian, english: w.english, acc: acc });
+        }
+        i++;
+    }
+    var overallAcc = 0;
+    if (totalSeen > 0) {
+        overallAcc = totalCorrect / totalSeen;
+    }
+    weakWords.sort(function(a, b) {
+        if (a.acc < b.acc) return -1;
+        if (a.acc > b.acc) return 1;
+        return 0;
+    });
+    strongWords.sort(function(a, b) {
+        if (b.acc < a.acc) return -1;
+        if (b.acc > a.acc) return 1;
+        return 0;
+    });
+    var result = {};
+    result.totalSeen = totalSeen;
+    result.totalCorrect = totalCorrect;
+    result.totalWrong = totalWrong;
+    result.overallAcc = Math.round(overallAcc * 100);
+    result.weakWords = weakWords;
+    result.strongWords = strongWords;
+    result.weakCount = weakWords.length;
+    result.strongCount = strongWords.length;
+    return result;
+}
+function evaluateDifficultyShift() {
+    var perf = analyzeLessonPerformance();
+    var newTier = "beginner";
+    if (perf.totalSeen >= 80 && perf.overallAcc >= 80) {
+        newTier = "advanced";
+    } else if (perf.totalSeen >= 30 && perf.overallAcc >= 70) {
+        newTier = "intermediate";
+    }
+    if (STATE.difficultyLevel !== newTier) {
+        console.log("KGB difficulty recalibration: " + (STATE.difficultyLevel || "beginner") + " -> " + newTier);
+        STATE.difficultyLevel = newTier;
+    }
+    return newTier;
+}
 
 function bootAuth() {
     supabase.auth.getSession().then(function(result) {
