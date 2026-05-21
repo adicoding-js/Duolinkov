@@ -18,7 +18,7 @@ node server.js
 - NOTE: The app runs on port 3000 by default. Go to `http://localhost:3000` in your browser.
 
 ---
-### OR Just play it directly on -> [Duolinkov](https://Duolinkov-production.up.railway.app/) (updates every commit)
+### OR Just play it directly on -> [Duolinkov](duolinkov.up.railway.app) (updates every commit)
 
 ## How to Play!
 - Enter your username and log in (either guest or with mail)
