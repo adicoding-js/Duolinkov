@@ -31,7 +31,7 @@ node server.js
 - Every lesson generates new vocab via an ai model, difficulty actually scales, and you get a teach phase before any quizzing
 - Shop with 8 items, and 18% chance that mid lesson the owl interrupts you with an absurd KGB accusation that actually affects your lessons (hearts and XP), hearts/XP/streak system with daily decay.
 ---
-# What Makes it Tier-4?
+# What Makes it so complex and good?
 - Full SM-2 spaced repetition engine under the hood, which includes memory decay over time, ghost words that come back after 30 days, overdue words get pulled into your next lesson automatically. Also there is log/sign-up with either guest mode or full email login via Supabase, in which SRS syncs to cloud, and the live leaderboard updates in realtime where real users compete against hardcoded Soviet characters (with joseph stalin at 9999999 XP)
 ---
 
@@ -50,4 +50,4 @@ node server.js
 - Disclaimer: Ai was used in this project, however no code is written by ai. AI helped in debugging and understanding and things that are mentioned in the Ai disclaimer.
 ---
 ## Made with 💖 by [adicoding-js](https://github.com/adicoding-js/)
-### Made for [Macondo](https://macondo.hackclub.com/) with love and hard-work!!💖
+### Made for [Beest](https://beest.hackclub.com/) with love and hard-work!!💖
